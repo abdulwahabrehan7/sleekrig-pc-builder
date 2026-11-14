@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SleekRig - Custom PC Architect</title>
+    <script src="hardware-api.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        mono: {
+                            50: '#f9f9f9',
+                            100: '#f3f3f3',
+                            200: '#e5e5e5',
+                            300: '#d4d4d4',
+                            400: '#a3a3a3',
+                            500: '#737373',
+                            600: '#525252',
+                            700: '#404040',
+                            800: '#262626',
+                            900: '#171717',
+                            950: '#0a0a0a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf.js for vector PDF exports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(150, 150, 150, 0.5); }
+        .glass-panel { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    </style>
+</head>
+<body class="bg-mono-50 text-mono-900 dark:bg-mono-950 dark:text-mono-100 font-sans min-h-screen transition-colors duration-200 antialiased selection:bg-mono-900 selection:text-mono-50 dark:selection:bg-mono-100 dark:selection:text-mono-900">
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 pointer-events-none"></div>
+
+    <!-- Top Header -->
+    <header class="sticky top-0 z-40 w-full border-b border-mono-200 dark:border-mono-800 bg-mono-50/80 dark:bg-mono-950/80 glass-panel">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-mono-900 text-mono-50 dark:bg-mono-100 dark:text-mono-950 flex items-center justify-center font-bold font-mono text-lg shadow-sm">
+                    <i class="fa-solid fa-microchip"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-tight uppercase font-mono">SLEEK<span class="text-mono-500 font-normal">RIG</span></h1>
+                    <p class="text-[10px] text-mono-500 font-mono tracking-wider">CUSTOM PC BUILD ARCHITECT</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button id="theme-toggle" class="p-2.5 rounded-xl border border-mono-200 dark:border-mono-800 hover:bg-mono-200/50 dark:hover:bg-mono-800/50 transition-colors" title="Toggle Light/Dark Theme">
+                    <i class="fa-solid fa-moon dark:hidden text-mono-700"></i>
+                    <i class="fa-solid fa-sun hidden dark:block text-mono-300"></i>
+                </button>
+                <select id="currency-select"
+                    class="px-3 py-2 rounded-xl border border-mono-200 dark:border-mono-800 bg-mono-50 dark:bg-mono-950 text-xs font-mono font-semibold focus:outline-none cursor-pointer">
+                    <option value="USD">USD ($)</option>
+                    <option value="AED">AED (د.إ)</option>
+                    <option value="INR">INR (₹)</option>
+                </select>
+                <button id="clear-build-btn" class="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl border border-mono-200 dark:border-mono-800 hover:border-red-500 hover:text-red-500 text-xs font-mono transition-colors">
+                    <i class="fa-solid fa-rotate-left"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 lg:pb-12">
+        
+        <!-- Controls & Personal Preference Section -->
+        <section class="mb-8 bg-mono-100/50 dark:bg-mono-900/40 border border-mono-200 dark:border-mono-800/80 rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 pb-4 border-b border-mono-200 dark:border-mono-800">
+                <div>
+                    <h2 class="text-base font-semibold font-mono flex items-center gap-2 uppercase tracking-wide">
+                        <i class="fa-solid fa-sliders text-xs"></i> Personalization & Filters
+                    </h2>
+                    <p class="text-xs text-mono-500 mt-0.5">Filter items by workload, aesthetics, and max target price</p>
+                </div>
+
+                <!-- Auto-Fill Quick Presets -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-xs font-mono text-mono-400 mr-1">Presets:</span>
+                    <button data-preset="gaming" class="preset-btn text-xs font-mono px-3 py-1.5 rounded-xl border border-mono-300 dark:border-mono-700 hover:bg-mono-900 hover:text-mono-50 dark:hover:bg-mono-100 dark:hover:text-mono-950 transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-gamepad text-[10px]"></i> 4K Gaming
+                    </button>
+                    <button data-preset="workstation" class="preset-btn text-xs font-mono px-3 py-1.5 rounded-xl border border-mono-300 dark:border-mono-700 hover:bg-mono-900 hover:text-mono-50 dark:hover:bg-mono-100 dark:hover:text-mono-950 transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-laptop-code text-[10px]"></i> Workstation
+                    </button>
+                    <button data-preset="budget" class="preset-btn text-xs font-mono px-3 py-1.5 rounded-xl border border-mono-300 dark:border-mono-700 hover:bg-mono-900 hover:text-mono-50 dark:hover:bg-mono-100 dark:hover:text-mono-950 transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-wallet text-[10px]"></i> Ultra Budget
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filters Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs font-mono text-mono-500 mb-1.5">Target Use Case</label>
+                    <select id="filter-usecase" class="w-full bg-mono-50 dark:bg-mono-950 border border-mono-300 dark:border-mono-800 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none">
+                        <option value="all">All Use Cases</option>
+                        <option value="gaming">Gaming & Esports</option>
+                        <option value="workstation">Workstation & Creation</option>
+                        <option value="office">Office & Daily Tasks</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-mono text-mono-500 mb-1.5">Aesthetic Theme</label>
+                    <select id="filter-theme" class="w-full bg-mono-50 dark:bg-mono-950 border border-mono-300 dark:border-mono-800 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none">
+                        <option value="all">All Themes</option>
+                        <option value="stealth">Stealth Black</option>
+                        <option value="white">Whiteout Minimal</option>
+                        <option value="rgb">RGB Enthusiast</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-mono text-mono-500 mb-1.5">Form Factor Preference</label>
+                    <select id="filter-formfactor" class="w-full bg-mono-50 dark:bg-mono-950 border border-mono-300 dark:border-mono-800 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none">
+                        <option value="all">All Sizes</option>
+                        <option value="ATX">Standard ATX</option>
+                        <option value="Micro-ATX">Micro-ATX Compact</option>
+                    </select>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="text-xs font-mono text-mono-500">Max Component Price</label>
+                        <span id="budget-value-display" class="text-xs font-mono font-semibold">$2,500</span>
+                    </div>
+                    <input type="range" id="filter-maxprice" min="30" max="2500" step="10" value="2500" class="w-full accent-mono-900 dark:accent-mono-100 cursor-pointer">
+                </div>
+            </div>
+        </section>
+
+        <!-- Layout Grid: Pickers + Summary -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Left Column: Pickers -->
+            <div class="lg:col-span-7 xl:col-span-8 flex flex-col gap-5" id="component-categories-wrapper">
+                <!-- Dynamically populated via JS -->
+            </div>
+
+            <!-- Right Column: Sticky Summary -->
+            <div class="hidden lg:block lg:col-span-5 xl:col-span-4 sticky top-20">
+                <div id="desktop-summary-card" class="bg-mono-100/70 dark:bg-mono-900/60 border border-mono-200 dark:border-mono-800 rounded-2xl p-6 shadow-lg glass-panel flex flex-col gap-5">
+                    <!-- Summary content populated by JS -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Mobile Drawer Bar -->
+    <div class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-mono-100/90 dark:bg-mono-900/90 border-t border-mono-300 dark:border-mono-800 p-4 glass-panel shadow-2xl">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <span class="text-[10px] font-mono uppercase text-mono-500 block">Total Estimated Cost</span>
+                <span id="mobile-total-price" class="text-xl font-bold font-mono">$0</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div id="mobile-compat-badge" class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                    OK
+                </div>
+                <button id="open-mobile-modal" class="px-4 py-2 bg-mono-900 text-mono-50 dark:bg-mono-100 dark:text-mono-950 font-mono font-semibold text-xs rounded-xl shadow">
+                    View Specs (<span id="mobile-selected-count">0</span>/8)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Build Details Modal -->
+    <div id="mobile-modal" class="fixed inset-0 z-50 bg-mono-950/80 backdrop-blur-sm hidden flex flex-col justify-end lg:hidden">
+        <div class="bg-mono-50 dark:bg-mono-900 border-t border-mono-200 dark:border-mono-800 rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto flex flex-col gap-5">
+            <div class="flex items-center justify-between pb-3 border-b border-mono-200 dark:border-mono-800">
+                <h3 class="font-bold font-mono uppercase text-base flex items-center gap-2">
+                    <i class="fa-solid fa-list-check"></i> System Specs Summary
+                </h3>
+                <button id="close-mobile-modal" class="w-8 h-8 rounded-full border border-mono-300 dark:border-mono-700 flex items-center justify-center text-mono-500">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+            <div id="mobile-modal-summary-content" class="flex flex-col gap-5"></div>
+        </div>
+    </div>
+
+    <!-- Component Selection Modal with Search & Custom Item Creation -->
+    <div id="selection-modal" class="fixed inset-0 z-50 bg-mono-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-mono-50 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-mono-200 dark:border-mono-800 flex items-center justify-between bg-mono-100/50 dark:bg-mono-950/50">
+                <div>
+                    <div class="flex items-center gap-2.5">
+                        <h3 id="modal-category-title" class="font-bold font-mono text-lg uppercase tracking-wide">Select Component</h3>
+                        <span id="modal-item-count" class="text-[11px] font-mono px-2 py-0.5 rounded-md bg-mono-200 dark:bg-mono-800 text-mono-600 dark:text-mono-300">0 items</span>
+                    </div>
+                    <p class="text-xs text-mono-500">Search strictly within this category or add custom product specs</p>
+                </div>
+                <button id="close-selection-modal" class="w-9 h-9 rounded-xl border border-mono-200 dark:border-mono-800 hover:bg-mono-200/50 dark:hover:bg-mono-800/50 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Search & Custom Form Toggle -->
+            <div class="p-4 border-b border-mono-200 dark:border-mono-800 flex flex-col sm:flex-row gap-3 bg-mono-50 dark:bg-mono-900">
+                <div class="relative flex-grow">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs text-mono-400"></i>
+                    <input type="text" id="modal-search-input" placeholder="Search 100+ components in this category..." class="w-full bg-mono-100 dark:bg-mono-950 border border-mono-300 dark:border-mono-800 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none">
+                </div>
+                <button id="live-search-btn" class="px-4 py-2 rounded-xl bg-mono-900 text-mono-50 dark:bg-mono-100 dark:text-mono-950 text-xs font-mono font-bold flex items-center justify-center gap-1.5 shrink-0 shadow hover:opacity-90 transition-opacity">
+                     Search
+                </button>
+                <select id="modal-sort-select" class="bg-mono-100 dark:bg-mono-950 border border-mono-300 dark:border-mono-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="name">Name</option>
+                </select>
+                <button id="toggle-custom-form-btn" class="px-3 py-2 rounded-xl bg-mono-200 dark:bg-mono-800 hover:bg-mono-300 dark:hover:bg-mono-700 text-xs font-mono transition-colors flex items-center justify-center gap-1.5 shrink-0">
+                    <i class="fa-solid fa-plus"></i> Add Custom
+                </button>
+            </div>
+
+            <!-- Custom Component Input Form (Hidden by default) -->
+            <div id="custom-item-form" class="hidden p-4 bg-mono-100/80 dark:bg-mono-950/80 border-b border-mono-200 dark:border-mono-800 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <input type="text" id="custom-name" placeholder="Product Name" class="bg-mono-50 dark:bg-mono-900 border border-mono-300 dark:border-mono-800 rounded-lg px-3 py-1.5 text-xs">
+                <input type="number" id="custom-price" placeholder="Price ($)" class="bg-mono-50 dark:bg-mono-900 border border-mono-300 dark:border-mono-800 rounded-lg px-3 py-1.5 text-xs">
+                <input type="number" id="custom-wattage" placeholder="Power Draw (W)" class="bg-mono-50 dark:bg-mono-900 border border-mono-300 dark:border-mono-800 rounded-lg px-3 py-1.5 text-xs">
+                <button id="save-custom-item-btn" class="bg-mono-900 text-mono-50 dark:bg-mono-100 dark:text-mono-950 rounded-lg text-xs font-mono font-semibold py-1.5">Add to Category</button>
+            </div>
+
+            <!-- Modal Product Grid -->
+            <div id="modal-items-grid" class="p-5 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh]"></div>
+        </div>
+    </div>
+
+    <!-- Off-Screen HTML Container Used for Vector PDF Generation (Fixed blank page bug) -->
+    <div style="position: fixed; left: -9999px; top: 0; pointer-events: none; z-index: -1;">
+        <div id="pdf-export-template" class="p-8 bg-white text-mono-950 font-sans" style="width: 750px;"></div>
+    </div>
+
+    <script>
+        /**
+         * Comprehensive Component Hardware Catalog
+         */
+        const HARDWARE_DATABASE = (() => {
+            const imgs = {
+                cpu: ['https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&auto=format&fit=crop&q=80', 'https://images.unsplash.com/photo-1555680202-c86f0e12f086?w=300&auto=format&fit=crop&q=80'],
+                gpu: ['https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=300&auto=format&fit=crop&q=80', 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300&auto=format&fit=crop&q=80'],
+                mb: ['https://images.unsplash.com/photo-1518770660439-4636190af475?w=300&auto=format&fit=crop&q=80'],
+                ram: ['https://images.unsplash.com/photo-1562976540-1502c2145186?w=300&auto=format&fit=crop&q=80'],
+                ssd: ['https://images.unsplash.com/photo-1597872250970-45630a91e569?w=300&auto=format&fit=crop&q=80'],
+                psu: ['https://images.unsplash.com/photo-1555680202-c86f0e12f086?w=300&auto=format&fit=crop&q=80'],
+                case: ['https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=300&auto=format&fit=crop&q=80'],
+                cooler: ['https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=300&auto=format&fit=crop&q=80']
+            };
+
+            const db = { cpu: [], gpu: [], motherboard: [], ram: [], storage: [], psu: [], case: [], cooler: [] };
+
+            // 1. CPUs (108 real models across Intel 12th/13th/14th/Core Ultra & AMD Ryzen 3000/5000/7000/8000/9000/Threadripper)
+            const cpuModels = [
+                // Budget
+                ['Intel Celeron G6900', 55, 'LGA1700', 46, '2C/2T, 3.4 GHz, UHD 710', ['office', 'stealth']],
+                ['Intel Pentium Gold G7400', 72, 'LGA1700', 46, '2C/4T, 3.7 GHz, UHD 710', ['office', 'stealth']],
+                ['AMD Athlon 3000G', 59, 'AM4', 35, '2C/4T, 3.5 GHz, Vega 3', ['office', 'stealth']],
+                ['AMD Ryzen 3 3200G', 79, 'AM4', 65, '4C/4T, 4.0 GHz, Vega 8', ['office', 'stealth']],
+                ['AMD Ryzen 3 4100', 69, 'AM4', 65, '4C/8T, 4.0 GHz Boost', ['office', 'gaming', 'stealth']],
+                ['AMD Ryzen 3 4300G', 95, 'AM4', 65, '4C/8T, 4.0 GHz, Radeon Graphics', ['office', 'stealth']],
+                ['Intel Core i3-10100F', 68, 'LGA1200', 65, '4C/8T, 4.3 GHz Boost', ['office', 'gaming']],
+                ['Intel Core i3-10105F', 74, 'LGA1200', 65, '4C/8T, 4.4 GHz Boost', ['office', 'gaming']],
+                ['Intel Core i3-12100F', 89, 'LGA1700', 58, '4C/8T, 4.3 GHz Boost', ['gaming', 'office', 'stealth']],
+                ['Intel Core i3-12100', 112, 'LGA1700', 60, '4C/8T, 4.3 GHz, UHD 730', ['office', 'stealth']],
+                ['Intel Core i3-13100F', 105, 'LGA1700', 58, '4C/8T, 4.5 GHz Boost', ['gaming', 'office']],
+                ['Intel Core i3-13100', 129, 'LGA1700', 60, '4C/8T, 4.5 GHz, UHD 730', ['office']],
+                ['Intel Core i3-14100F', 115, 'LGA1700', 58, '4C/8T, 4.7 GHz Boost', ['gaming', 'office']],
+                ['Intel Core i3-14100', 139, 'LGA1700', 60, '4C/8T, 4.7 GHz, UHD 730', ['office']],
+                ['AMD Ryzen 5 3600', 85, 'AM4', 65, '6C/12T, 4.2 GHz Boost', ['gaming', 'office', 'stealth']],
+                ['AMD Ryzen 5 4500', 78, 'AM4', 65, '6C/12T, 4.1 GHz Boost', ['gaming', 'office']],
+                ['AMD Ryzen 5 4600G', 98, 'AM4', 65, '6C/12T, 4.2 GHz, Vega 7', ['office', 'stealth']],
+                ['AMD Ryzen 5 5500', 89, 'AM4', 65, '6C/12T, 4.2 GHz Boost', ['gaming', 'office', 'stealth']],
+                ['AMD Ryzen 5 5600G', 125, 'AM4', 65, '6C/12T, 4.4 GHz, Vega 7', ['office', 'gaming']],
+                ['AMD Ryzen 5 5600GT', 129, 'AM4', 65, '6C/12T, 4.6 GHz, Vega 7', ['office', 'gaming']],
+                ['AMD Ryzen 5 5600', 118, 'AM4', 65, '6C/12T, 4.4 GHz, 32MB L3', ['gaming', 'office', 'stealth']],
+                ['AMD Ryzen 5 5600X', 135, 'AM4', 65, '6C/12T, 4.6 GHz Boost', ['gaming', 'stealth']],
+                ['AMD Ryzen 5 5600X3D', 199, 'AM4', 105, '6C/12T, 96MB 3D V-Cache', ['gaming']],
+                ['Intel Core i5-11400F', 119, 'LGA1200', 65, '6C/12T, 4.4 GHz Boost', ['gaming', 'office']],
+                ['Intel Core i5-12400F', 128, 'LGA1700', 65, '6C/12T, 4.4 GHz Boost', ['gaming', 'office', 'stealth']],
+                ['Intel Core i5-12400', 149, 'LGA1700', 65, '6C/12T, 4.4 GHz, UHD 730', ['office', 'stealth']],
+                ['Intel Core i5-12600KF', 159, 'LGA1700', 125, '10C/16T, 4.9 GHz Unlocked', ['gaming', 'workstation']],
+                ['Intel Core i5-12600K', 179, 'LGA1700', 125, '10C/16T, 4.9 GHz, UHD 770', ['gaming', 'workstation']],
+                // Midrange
+                ['AMD Ryzen 5 7500F', 165, 'AM5', 65, '6C/12T, 5.0 GHz Boost, DDR5', ['gaming', 'stealth']],
+                ['AMD Ryzen 5 7600', 189, 'AM5', 65, '6C/12T, 5.1 GHz, Radeon iGPU', ['gaming', 'office', 'stealth']],
+                ['AMD Ryzen 5 7600X', 209, 'AM5', 105, '6C/12T, 5.3 GHz Boost', ['gaming', 'office', 'stealth']],
+                ['AMD Ryzen 5 8400F', 159, 'AM5', 65, '6C/12T, 4.7 GHz Zen 4', ['gaming', 'office']],
+                ['AMD Ryzen 5 8500G', 169, 'AM5', 65, '6C/12T, 5.0 GHz, Radeon 740M', ['office', 'stealth']],
+                ['AMD Ryzen 5 8600G', 199, 'AM5', 65, '6C/12T, 5.0 GHz, Radeon 760M', ['office', 'gaming']],
+                ['AMD Ryzen 5 9600X', 249, 'AM5', 65, '6C/12T, 5.4 GHz Zen 5', ['gaming', 'office', 'stealth']],
+                ['Intel Core i5-13400F', 175, 'LGA1700', 65, '10C/16T, 4.6 GHz Boost', ['gaming', 'office', 'stealth']],
+                ['Intel Core i5-13400', 199, 'LGA1700', 65, '10C/16T, 4.6 GHz, UHD 730', ['office', 'workstation']],
+                ['Intel Core i5-13500', 229, 'LGA1700', 65, '14C/20T, 4.8 GHz, UHD 770', ['workstation', 'office']],
+                ['Intel Core i5-13600KF', 249, 'LGA1700', 125, '14C/20T, 5.1 GHz Unlocked', ['gaming', 'workstation']],
+                ['Intel Core i5-13600K', 269, 'LGA1700', 125, '14C/20T, 5.1 GHz, UHD 770', ['gaming', 'workstation']],
+                ['Intel Core i5-14400F', 189, 'LGA1700', 65, '10C/16T, 4.7 GHz Boost', ['gaming', 'office']],
+                ['Intel Core i5-14400', 215, 'LGA1700', 65, '10C/16T, 4.7 GHz, UHD 730', ['office', 'workstation']],
+                ['Intel Core i5-14500', 239, 'LGA1700', 65, '14C/20T, 5.0 GHz, UHD 770', ['workstation', 'office']],
+                ['Intel Core i5-14600KF', 265, 'LGA1700', 125, '14C/20T, 5.3 GHz Unlocked', ['gaming', 'workstation']],
+                ['Intel Core i5-14600K', 289, 'LGA1700', 125, '14C/20T, 5.3 GHz, UHD 770', ['gaming', 'workstation', 'stealth']],
+                ['Intel Core Ultra 5 245KF', 294, 'LGA1851', 125, '14C/14T, 5.2 GHz Arrow Lake', ['gaming', 'workstation']],
+                ['Intel Core Ultra 5 245K', 309, 'LGA1851', 125, '14C/14T, 5.2 GHz + NPU', ['gaming', 'workstation']],
+                ['AMD Ryzen 7 5700', 149, 'AM4', 65, '8C/16T, 4.6 GHz Boost', ['gaming', 'workstation']],
+                ['AMD Ryzen 7 5700G', 169, 'AM4', 65, '8C/16T, 4.6 GHz, Vega 8', ['office', 'workstation']],
+                ['AMD Ryzen 7 5700X', 165, 'AM4', 65, '8C/16T, 4.6 GHz, 32MB L3', ['gaming', 'workstation', 'stealth']],
+                ['AMD Ryzen 7 5700X3D', 209, 'AM4', 105, '8C/16T, 96MB 3D V-Cache', ['gaming', 'stealth']],
+                ['AMD Ryzen 7 5800X', 185, 'AM4', 105, '8C/16T, 4.7 GHz Boost', ['gaming', 'workstation']],
+                ['AMD Ryzen 7 5800XT', 219, 'AM4', 105, '8C/16T, 4.8 GHz Boost', ['gaming', 'workstation']],
+                ['AMD Ryzen 7 5800X3D', 319, 'AM4', 105, '8C/16T, 96MB 3D V-Cache', ['gaming', 'stealth']],
+                ['AMD Ryzen 7 7700', 269, 'AM5', 65, '8C/16T, 5.3 GHz, Wraith Prism', ['gaming', 'workstation']],
+                ['AMD Ryzen 7 7700X', 285, 'AM5', 105, '8C/16T, 5.4 GHz Boost', ['gaming', 'workstation', 'stealth']],
+                ['AMD Ryzen 7 8700F', 249, 'AM5', 65, '8C/16T, 5.0 GHz Zen 4', ['gaming', 'workstation']],
+                ['AMD Ryzen 7 8700G', 289, 'AM5', 65, '8C/16T, 5.1 GHz, Radeon 780M', ['office', 'gaming']],
+                ['AMD Ryzen 7 9700X', 329, 'AM5', 65, '8C/16T, 5.5 GHz Zen 5', ['gaming', 'workstation', 'stealth']],
+                ['Intel Core i7-12700KF', 215, 'LGA1700', 125, '12C/20T, 5.0 GHz Unlocked', ['gaming', 'workstation']],
+                ['Intel Core i7-12700K', 239, 'LGA1700', 125, '12C/20T, 5.0 GHz, UHD 770', ['gaming', 'workstation']],
+                ['Intel Core i7-13700F', 319, 'LGA1700', 65, '16C/24T, 5.2 GHz Boost', ['workstation', 'gaming']],
+                ['Intel Core i7-13700KF', 329, 'LGA1700', 125, '16C/24T, 5.4 GHz Unlocked', ['gaming', 'workstation']],
+                ['Intel Core i7-13700K', 349, 'LGA1700', 125, '16C/24T, 5.4 GHz, UHD 770', ['gaming', 'workstation']],
+                // Flagship
+                ['AMD Ryzen 7 7800X3D', 439, 'AM5', 120, '8C/16T, 96MB 3D V-Cache', ['gaming', 'stealth', 'rgb']],
+                ['AMD Ryzen 7 9800X3D', 479, 'AM5', 120, '8C/16T, 2nd Gen 3D V-Cache', ['gaming', 'stealth', 'rgb']],
+                ['Intel Core i7-14700F', 359, 'LGA1700', 65, '20C/28T, 5.4 GHz Boost', ['workstation', 'gaming']],
+                ['Intel Core i7-14700KF', 375, 'LGA1700', 125, '20C/28T, 5.6 GHz Unlocked', ['gaming', 'workstation']],
+                ['Intel Core i7-14700K', 395, 'LGA1700', 125, '20C/28T, 5.6 GHz, UHD 770', ['gaming', 'workstation', 'stealth']],
+                ['Intel Core Ultra 7 265KF', 384, 'LGA1851', 125, '20C/20T, 5.5 GHz Arrow Lake', ['gaming', 'workstation']],
+                ['Intel Core Ultra 7 265K', 399, 'LGA1851', 125, '20C/20T, 5.5 GHz + NPU', ['gaming', 'workstation']],
+                ['AMD Ryzen 9 5900X', 259, 'AM4', 105, '12C/24T, 4.8 GHz, 64MB L3', ['workstation', 'gaming']],
+                ['AMD Ryzen 9 5900XT', 329, 'AM4', 105, '16C/32T, 4.8 GHz Boost', ['workstation']],
+                ['AMD Ryzen 9 5950X', 369, 'AM4', 105, '16C/32T, 4.9 GHz, 64MB L3', ['workstation', 'stealth']],
+                ['AMD Ryzen 9 7900', 369, 'AM5', 65, '12C/24T, 5.4 GHz, 65W TDP', ['workstation', 'gaming']],
+                ['AMD Ryzen 9 7900X', 389, 'AM5', 170, '12C/24T, 5.6 GHz Boost', ['workstation', 'gaming']],
+                ['AMD Ryzen 9 7900X3D', 449, 'AM5', 120, '12C/24T, 128MB 3D V-Cache', ['gaming', 'workstation']],
+                ['AMD Ryzen 9 7950X', 499, 'AM5', 170, '16C/32T, 5.7 GHz Boost', ['workstation', 'gaming', 'stealth']],
+                ['AMD Ryzen 9 7950X3D', 599, 'AM5', 120, '16C/32T, 128MB 3D V-Cache', ['gaming', 'workstation', 'rgb']],
+                ['AMD Ryzen 9 9900X', 429, 'AM5', 120, '12C/24T, 5.6 GHz Zen 5', ['workstation', 'gaming']],
+                ['AMD Ryzen 9 9900X3D', 599, 'AM5', 120, '12C/24T, Zen 5 3D V-Cache', ['gaming', 'workstation']],
+                ['AMD Ryzen 9 9950X', 629, 'AM5', 170, '16C/32T, 5.7 GHz Zen 5', ['workstation', 'gaming', 'stealth']],
+                ['AMD Ryzen 9 9950X3D', 699, 'AM5', 170, '16C/32T, Flagship Zen 5 3D', ['gaming', 'workstation', 'rgb']],
+                ['Intel Core i9-12900KF', 319, 'LGA1700', 125, '16C/24T, 5.2 GHz Unlocked', ['workstation', 'gaming']],
+                ['Intel Core i9-12900K', 339, 'LGA1700', 125, '16C/24T, 5.2 GHz, UHD 770', ['workstation', 'gaming']],
+                ['Intel Core i9-12900KS', 379, 'LGA1700', 150, '16C/24T, 5.5 GHz Special Ed.', ['gaming', 'workstation']],
+                ['Intel Core i9-13900F', 449, 'LGA1700', 65, '24C/32T, 5.6 GHz Boost', ['workstation']],
+                ['Intel Core i9-13900KF', 469, 'LGA1700', 125, '24C/32T, 5.8 GHz Unlocked', ['gaming', 'workstation']],
+                ['Intel Core i9-13900K', 489, 'LGA1700', 125, '24C/32T, 5.8 GHz, UHD 770', ['gaming', 'workstation']],
+                ['Intel Core i9-13900KS', 549, 'LGA1700', 150, '24C/32T, 6.0 GHz Special Ed.', ['gaming', 'workstation']],
+                ['Intel Core i9-14900F', 519, 'LGA1700', 65, '24C/32T, 5.8 GHz Boost', ['workstation']],
+                ['Intel Core i9-14900KF', 529, 'LGA1700', 253, '24C/32T, 6.0 GHz Unlocked', ['gaming', 'workstation']],
+                ['Intel Core i9-14900K', 549, 'LGA1700', 253, '24C/32T, 6.0 GHz, UHD 770', ['gaming', 'workstation', 'stealth']],
+                ['Intel Core i9-14900KS', 649, 'LGA1700', 253, '24C/32T, 6.2 GHz Flagship', ['gaming', 'workstation', 'rgb']],
+                ['Intel Core Ultra 9 285K', 589, 'LGA1851', 125, '24C/24T, 5.7 GHz Arrow Lake', ['gaming', 'workstation', 'stealth']],
+                ['AMD Ryzen Threadripper 7960X', 1499, 'sTR5', 350, '24C/48T, 5.3 GHz Quad-Ch DDR5', ['workstation']],
+                ['AMD Ryzen Threadripper 7970X', 2499, 'sTR5', 350, '32C/64T, 5.3 GHz HEDT', ['workstation']],
+                ['AMD Ryzen Threadripper PRO 7955WX', 1649, 'sTR5', 350, '16C/32T, 8-Channel DDR5', ['workstation']],
+                ['Intel Xeon w5-2455X', 1099, 'LGA4677', 200, '12C/24T, 4.6 GHz ECC Workstation', ['workstation']],
+                ['Intel Xeon w7-2495X', 2189, 'LGA4677', 225, '24C/48T, 4.8 GHz Sapphire Rapids', ['workstation']],
+                ['AMD EPYC 4244P', 249, 'AM5', 65, '6C/12T, 5.1 GHz Server/Workstation', ['workstation', 'office']],
+                ['AMD EPYC 4344P', 329, 'AM5', 65, '8C/16T, 5.3 GHz Server/Workstation', ['workstation']],
+                ['AMD EPYC 4464P', 429, 'AM5', 65, '12C/24T, 5.4 GHz Server/Workstation', ['workstation']],
+                ['AMD EPYC 4564P', 699, 'AM5', 170, '16C/32T, 5.7 GHz Server/Workstation', ['workstation']],
+                ['Intel Core i5-14600T', 245, 'LGA1700', 35, '14C/20T, 5.1 GHz Low-Power 35W', ['office', 'workstation']],
+                ['Intel Core i7-14700T', 385, 'LGA1700', 35, '20C/28T, 5.2 GHz Low-Power 35W', ['office', 'workstation']],
+                ['Intel Core i9-14900T', 545, 'LGA1700', 35, '24C/32T, 5.5 GHz Low-Power 35W', ['office', 'workstation']]
+            ];
+            cpuModels.forEach((m, i) => db.cpu.push({ id: `cpu-${i+1}`, name: m[0], price: m[1], socket: m[2], wattage: m[3], specs: m[4], tags: m[5], img: imgs.cpu[i % 2] }));
+
+            // 2. GPUs (108 real AIB & Reference models across Budget, Midrange & Flagship)
+            const gpuModels = [
+                // Budget
+                ['NVIDIA GeForce GT 1030 2GB GDDR5', 89, 30, '2GB GDDR5, Low Profile Display', ['office']],
+                ['AMD Radeon RX 6400 4GB Low Profile', 129, 53, '4GB GDDR6, Slot-Powered', ['office', 'gaming']],
+                ['NVIDIA GeForce GTX 1650 4GB Ventus XS', 149, 75, '4GB GDDR6, No 6-Pin Required', ['office', 'gaming']],
+                ['Intel Arc A380 6GB Challenger ITX', 119, 75, '6GB GDDR6, AV1 Hardware Encode', ['office', 'gaming', 'stealth']],
+                ['Intel Arc A580 8GB Orc OC', 169, 185, '8GB GDDR6, XeSS Upscaling', ['gaming', 'stealth']],
+                ['AMD Radeon RX 6500 XT 4GB Pulse', 145, 107, '4GB GDDR6, 1080p Esports', ['gaming', 'office']],
+                ['MSI Radeon RX 6600 Mech 2X 8GB', 189, 132, '8GB GDDR6, 1080p High Gaming', ['gaming', 'stealth']],
+                ['Sapphire Pulse Radeon RX 6600 8GB', 195, 132, '8GB GDDR6, Dual-X Cooling', ['gaming', 'stealth']],
+                ['ASRock Radeon RX 6600 Challenger White 8GB', 205, 132, '8GB GDDR6, White Edition', ['gaming', 'white']],
+                ['PowerColor Fighter Radeon RX 6650 XT 8GB', 219, 176, '8GB GDDR6, 2635 MHz Boost', ['gaming', 'stealth']],
+                ['XFX Speedster SWFT 210 RX 6650 XT 8GB', 225, 176, '8GB GDDR6, Dual Fan', ['gaming', 'stealth']],
+                ['Gigabyte Radeon RX 7600 Gaming OC 8GB', 259, 165, '8GB GDDR6, Windforce 3X', ['gaming', 'stealth']],
+                ['Sapphire Pulse Radeon RX 7600 8GB', 255, 165, '8GB GDDR6, RDNA 3', ['gaming', 'stealth']],
+                ['ASUS Dual Radeon RX 7600 EVO OC 8GB', 265, 165, '8GB GDDR6, Axial-Tech Fans', ['gaming', 'stealth']],
+                ['Sapphire Pure Radeon RX 7600 8GB White', 275, 165, '8GB GDDR6, White Backplate', ['gaming', 'white']],
+                ['Intel Arc A750 8GB Limited Edition', 199, 225, '8GB GDDR6, Ray Tracing & AV1', ['gaming', 'workstation', 'stealth']],
+                ['Sparkle Intel Arc A750 Titan OC 8GB', 209, 225, '8GB GDDR6, Triple Fan Blue', ['gaming', 'workstation']],
+                ['Intel Arc A770 16GB Limited Edition', 279, 225, '16GB GDDR6, Content Creation', ['gaming', 'workstation', 'rgb']],
+                ['ASRock Intel Arc A770 Phantom Gaming 16GB', 289, 225, '16GB GDDR6, Polychrome RGB', ['gaming', 'workstation', 'rgb']],
+                ['Sparkle Intel Arc A770 ROC Luna OC 16GB', 299, 225, '16GB GDDR6, All-White Design', ['gaming', 'workstation', 'white']],
+                ['Intel Arc B570 10GB Challenger OC', 219, 150, '10GB GDDR6, Battlemage Xe2', ['gaming', 'stealth']],
+                ['Intel Arc B580 12GB Limited Edition', 249, 190, '12GB GDDR6, Battlemage Xe2', ['gaming', 'workstation', 'stealth']],
+                ['ASRock Intel Arc B580 Steel Legend 12GB', 269, 190, '12GB GDDR6, White Triple Fan', ['gaming', 'white', 'rgb']],
+                ['MSI GeForce RTX 3050 Ventus 2X 6GB', 169, 70, '6GB GDDR6, Slot-Powered DLSS', ['office', 'gaming', 'stealth']],
+                ['ASUS Dual GeForce RTX 3050 8GB OC', 209, 130, '8GB GDDR6, Ray Tracing', ['gaming', 'office']],
+                ['Zotac GeForce RTX 3060 Twin Edge 12GB', 279, 170, '12GB GDDR6, Great for AI/VRAM', ['gaming', 'workstation', 'stealth']],
+                ['MSI GeForce RTX 3060 Ventus 2X 12GB', 285, 170, '12GB GDDR6, Dual Fan', ['gaming', 'workstation', 'stealth']],
+                ['ASUS Dual GeForce RTX 4060 8GB OC', 295, 115, '8GB GDDR6, DLSS 3 Frame Gen', ['gaming', 'office', 'stealth']],
+                ['ASUS Dual GeForce RTX 4060 White OC 8GB', 309, 115, '8GB GDDR6, White Edition', ['gaming', 'white']],
+                ['MSI GeForce RTX 4060 Ventus 2X Black 8GB', 289, 115, '8GB GDDR6, Ultra Efficient', ['gaming', 'office', 'stealth']],
+                ['Gigabyte GeForce RTX 4060 Aero OC 8GB', 319, 115, '8GB GDDR6, Triple Fan White', ['gaming', 'white']],
+                ['Zotac GeForce RTX 4060 Solo 8GB ITX', 289, 115, '8GB GDDR6, Ultra Compact 163mm', ['gaming', 'office', 'stealth']],
+                // Midrange
+                ['Sapphire Pulse Radeon RX 7600 XT 16GB', 319, 190, '16GB GDDR6, RDNA 3', ['gaming', 'workstation', 'stealth']],
+                ['Gigabyte Radeon RX 7600 XT Gaming OC 16GB', 329, 190, '16GB GDDR6, Triple Fan', ['gaming', 'stealth']],
+                ['ASUS Dual GeForce RTX 4060 Ti 8GB OC', 379, 160, '8GB GDDR6, DLSS 3', ['gaming', 'stealth']],
+                ['MSI GeForce RTX 4060 Ti Gaming X 8GB', 395, 160, '8GB GDDR6, Twin Frozr 9', ['gaming', 'rgb']],
+                ['Gigabyte GeForce RTX 4060 Ti Aero OC 8GB', 409, 160, '8GB GDDR6, White Triple Fan', ['gaming', 'white']],
+                ['ASUS ProArt GeForce RTX 4060 Ti 16GB', 469, 165, '16GB GDDR6, Creator Edition', ['workstation', 'gaming', 'stealth']],
+                ['MSI GeForce RTX 4060 Ti Ventus 3X 16GB', 449, 165, '16GB GDDR6, Triple Fan', ['workstation', 'gaming', 'stealth']],
+                ['Sapphire Pulse Radeon RX 7700 XT 12GB', 389, 245, '12GB GDDR6, 1440p Sweetspot', ['gaming', 'stealth']],
+                ['PowerColor Hellhound RX 7700 XT 12GB', 399, 245, '12GB GDDR6, Ice Blue LED', ['gaming', 'rgb']],
+                ['ASRock Radeon RX 7700 XT Steel Legend 12GB', 409, 245, '12GB GDDR6, White Triple Fan', ['gaming', 'white', 'rgb']],
+                ['XFX Speedster QICK 319 RX 7700 XT 12GB', 395, 245, '12GB GDDR6, 335mm Triple Fan', ['gaming', 'stealth']],
+                ['Sapphire Pulse Radeon RX 7800 XT 16GB', 479, 263, '16GB GDDR6, 1440p Ultra', ['gaming', 'stealth']],
+                ['Sapphire Nitro+ Radeon RX 7800 XT 16GB', 519, 263, '16GB GDDR6, Vapor-X RGB', ['gaming', 'rgb']],
+                ['Sapphire Pure Radeon RX 7800 XT 16GB White', 499, 263, '16GB GDDR6, All-White Shroud', ['gaming', 'white']],
+                ['PowerColor Hellhound RX 7800 XT 16GB', 489, 263, '16GB GDDR6, Dual BIOS', ['gaming', 'rgb']],
+                ['PowerColor Hellhound Spectral White RX 7800 XT', 509, 263, '16GB GDDR6, Pure White PCB', ['gaming', 'white']],
+                ['ASUS TUF Gaming Radeon RX 7800 XT 16GB', 509, 263, '16GB GDDR6, Military Grade', ['gaming', 'stealth']],
+                ['Gigabyte Radeon RX 7800 XT Gaming OC 16GB', 489, 263, '16GB GDDR6, Windforce 3X', ['gaming', 'stealth']],
+                ['XFX Speedster MERC 319 RX 7800 XT 16GB', 495, 263, '16GB GDDR6, Black Edition', ['gaming', 'stealth']],
+                ['NVIDIA GeForce RTX 4070 Founders Edition 12GB', 549, 200, '12GB GDDR6X, Reference Design', ['gaming', 'workstation', 'stealth']],
+                ['ASUS Dual GeForce RTX 4070 EVO OC 12GB', 539, 200, '12GB GDDR6X, DLSS 3', ['gaming', 'stealth']],
+                ['MSI GeForce RTX 4070 Ventus 2X 12GB', 529, 200, '12GB GDDR6X, Compact Dual Fan', ['gaming', 'stealth']],
+                ['Gigabyte GeForce RTX 4070 Windforce OC 12GB', 545, 200, '12GB GDDR6X, Triple Fan', ['gaming', 'stealth']],
+                ['ASUS Dual GeForce RTX 4070 Super 12GB', 589, 220, '12GB GDDR6X, 7168 CUDA Cores', ['gaming', 'workstation', 'stealth']],
+                ['ASUS Dual GeForce RTX 4070 Super White 12GB', 609, 220, '12GB GDDR6X, White Edition', ['gaming', 'white']],
+                ['MSI GeForce RTX 4070 Super Ventus 2X 12GB', 585, 220, '12GB GDDR6X, DLSS 3', ['gaming', 'stealth']],
+                ['MSI GeForce RTX 4070 Super Gaming X Slim 12GB', 629, 220, '12GB GDDR6X, Slim 2.5 Slot', ['gaming', 'rgb']],
+                ['Gigabyte GeForce RTX 4070 Super Aero OC 12GB', 639, 220, '12GB GDDR6X, White Creator', ['gaming', 'workstation', 'white']],
+                ['Zotac GeForce RTX 4070 Super Twin Edge 12GB', 579, 220, '12GB GDDR6X, Compact', ['gaming', 'stealth']],
+                ['ASUS TUF Gaming GeForce RTX 4070 Super 12GB', 649, 220, '12GB GDDR6X, Metal Exoskeleton', ['gaming', 'stealth']],
+                ['Sapphire Pulse Radeon RX 7900 GRE 16GB', 539, 260, '16GB GDDR6, Golden Rabbit Ed.', ['gaming', 'stealth']],
+                ['PowerColor Fighter Radeon RX 7900 GRE 16GB', 529, 260, '16GB GDDR6, Triple Fan', ['gaming', 'stealth']],
+                ['XFX Radeon RX 7900 GRE Gaming 16GB', 545, 260, '16GB GDDR6, 256-bit Bus', ['gaming', 'stealth']],
+                ['ASRock Radeon RX 7900 GRE Steel Legend 16GB', 559, 260, '16GB GDDR6, White RGB', ['gaming', 'white', 'rgb']],
+                // Flagship
+                ['Sapphire Pulse Radeon RX 7900 XT 20GB', 679, 315, '20GB GDDR6, 320-bit Bus', ['gaming', 'workstation', 'stealth']],
+                ['Sapphire Nitro+ Radeon RX 7900 XT 20GB', 729, 315, '20GB GDDR6, Vapor-X RGB', ['gaming', 'rgb']],
+                ['XFX Speedster MERC 310 RX 7900 XT 20GB', 689, 315, '20GB GDDR6, Black Edition', ['gaming', 'stealth']],
+                ['PowerColor Hellhound RX 7900 XT 20GB', 685, 315, '20GB GDDR6, Triple Fan', ['gaming', 'rgb']],
+                ['ASUS TUF Gaming GeForce RTX 4070 Ti Super 16GB', 799, 285, '16GB GDDR6X, 256-bit Bus', ['gaming', 'workstation', 'stealth']],
+                ['ASUS TUF Gaming RTX 4070 Ti Super White 16GB', 829, 285, '16GB GDDR6X, All-White', ['gaming', 'white']],
+                ['MSI GeForce RTX 4070 Ti Super Ventus 3X 16GB', 789, 285, '16GB GDDR6X, Triple Fan', ['gaming', 'workstation', 'stealth']],
+                ['MSI GeForce RTX 4070 Ti Super Gaming X Slim 16GB', 819, 285, '16GB GDDR6X, Tri Frozr 3', ['gaming', 'rgb']],
+                ['Gigabyte GeForce RTX 4070 Ti Super Aero OC 16GB', 839, 285, '16GB GDDR6X, White Design', ['gaming', 'workstation', 'white']],
+                ['Zotac GeForce RTX 4070 Ti Super Trinity 16GB', 779, 285, '16GB GDDR6X, IceStorm 2.0', ['gaming', 'stealth']],
+                ['ASUS ProArt GeForce RTX 4070 Ti Super 16GB', 849, 285, '16GB GDDR6X, Compact Creator', ['workstation', 'stealth']],
+                ['Sapphire Pulse Radeon RX 7900 XTX 24GB', 879, 355, '24GB GDDR6, 4K Flagship', ['gaming', 'workstation', 'stealth']],
+                ['Sapphire Nitro+ Radeon RX 7900 XTX 24GB', 949, 355, '24GB GDDR6, Vapor-X RGB', ['gaming', 'workstation', 'rgb']],
+                ['XFX Speedster MERC 310 RX 7900 XTX 24GB', 889, 355, '24GB GDDR6, 384-bit Bus', ['gaming', 'workstation', 'stealth']],
+                ['PowerColor Red Devil RX 7900 XTX 24GB', 919, 355, '24GB GDDR6, Devil Zone RGB', ['gaming', 'rgb']],
+                ['PowerColor Hellhound Spectral White RX 7900 XTX', 929, 355, '24GB GDDR6, Pure White', ['gaming', 'white']],
+                ['ASUS TUF Gaming Radeon RX 7900 XTX 24GB', 915, 355, '24GB GDDR6, Axial-Tech', ['gaming', 'stealth']],
+                ['ASRock Taichi White Radeon RX 7900 XTX 24GB', 959, 355, '24GB GDDR6, White/Silver RGB', ['gaming', 'white', 'rgb']],
+                ['NVIDIA GeForce RTX 4080 Super Founders Ed. 16GB', 999, 320, '16GB GDDR6X, Reference', ['gaming', 'workstation', 'stealth']],
+                ['ASUS TUF Gaming GeForce RTX 4080 Super 16GB', 1029, 320, '16GB GDDR6X, 10240 CUDA', ['gaming', 'workstation', 'stealth']],
+                ['ASUS ROG Strix GeForce RTX 4080 Super 16GB', 1149, 320, '16GB GDDR6X, Aura Sync RGB', ['gaming', 'rgb']],
+                ['ASUS ROG Strix RTX 4080 Super White 16GB', 1189, 320, '16GB GDDR6X, White Edition', ['gaming', 'white', 'rgb']],
+                ['MSI GeForce RTX 4080 Super Expert 16GB', 1079, 320, '16GB GDDR6X, Aluminum Shroud', ['workstation', 'gaming', 'stealth']],
+                ['MSI GeForce RTX 4080 Super Suprim X 16GB', 1129, 320, '16GB GDDR6X, Tri Frozr 3S', ['gaming', 'rgb']],
+                ['Gigabyte GeForce RTX 4080 Super Aero OC 16GB', 1059, 320, '16GB GDDR6X, White Shroud', ['gaming', 'workstation', 'white']],
+                ['ASUS ProArt GeForce RTX 4080 Super 16GB', 1069, 320, '16GB GDDR6X, 2.5-Slot Creator', ['workstation', 'stealth']],
+                ['NVIDIA GeForce RTX 4090 Founders Edition 24GB', 1599, 450, '24GB GDDR6X, 16384 CUDA', ['gaming', 'workstation', 'stealth']],
+                ['ASUS TUF Gaming GeForce RTX 4090 24GB', 1749, 450, '24GB GDDR6X, Dual HDMI 2.1', ['gaming', 'workstation', 'stealth']],
+                ['ASUS ROG Strix GeForce RTX 4090 OC 24GB', 1949, 450, '24GB GDDR6X, Flagship Air', ['gaming', 'workstation', 'rgb']],
+                ['ASUS ROG Strix RTX 4090 White OC 24GB', 1999, 450, '24GB GDDR6X, White Flagship', ['gaming', 'white', 'rgb']],
+                ['ASUS ROG Matrix Platinum RTX 4090 24GB', 2399, 450, '24GB GDDR6X, 360mm Liquid AIO', ['gaming', 'workstation', 'rgb']],
+                ['MSI GeForce RTX 4090 Gaming X Trio 24GB', 1799, 450, '24GB GDDR6X, Tri Frozr 3', ['gaming', 'workstation', 'rgb']],
+                ['MSI GeForce RTX 4090 Suprim Liquid X 24GB', 1899, 450, '24GB GDDR6X, 240mm Hybrid AIO', ['gaming', 'workstation', 'stealth']],
+                ['Gigabyte GeForce RTX 4090 Gaming OC 24GB', 1769, 450, '24GB GDDR6X, Windforce 3X', ['gaming', 'workstation', 'rgb']],
+                ['Gigabyte GeForce RTX 4090 Aero OC 24GB', 1829, 450, '24GB GDDR6X, White Edition', ['gaming', 'workstation', 'white']],
+                ['NVIDIA GeForce RTX 5070 12GB Founders Edition', 549, 250, '12GB GDDR7, Blackwell DLSS 4', ['gaming', 'stealth']],
+                ['NVIDIA GeForce RTX 5070 Ti 16GB Gaming OC', 749, 300, '16GB GDDR7, Blackwell DLSS 4', ['gaming', 'workstation', 'stealth']],
+                ['NVIDIA GeForce RTX 5080 16GB Founders Edition', 999, 360, '16GB GDDR7, Blackwell DLSS 4', ['gaming', 'workstation', 'stealth']],
+                ['ASUS ROG Astral GeForce RTX 5080 OC 16GB', 1199, 360, '16GB GDDR7, Quad-Fan Design', ['gaming', 'rgb']],
+                ['NVIDIA GeForce RTX 5090 32GB Founders Edition', 1999, 575, '32GB GDDR7, 512-bit Blackwell', ['gaming', 'workstation', 'stealth']],
+                ['ASUS ROG Astral GeForce RTX 5090 OC 32GB', 2399, 575, '32GB GDDR7, Quad-Fan Flagship', ['gaming', 'workstation', 'rgb']],
+                ['MSI GeForce RTX 5090 Suprim Liquid SOC 32GB', 2449, 575, '32GB GDDR7, 360mm Liquid Cooled', ['gaming', 'workstation', 'stealth']],
+                ['NVIDIA RTX 6000 Ada Generation 48GB ECC', 2499, 300, '48GB GDDR6 ECC, AI & CAD Pro', ['workstation', 'stealth']]
+            ];
+            gpuModels.forEach((m, i) => db.gpu.push({ id: `gpu-${i+1}`, name: m[0], price: m[1], wattage: m[2], specs: m[3], tags: m[4], img: imgs.gpu[i % 2] }));
+
+            // 3. Motherboards (105 real models across AM4, AM5, LGA1700, LGA1851)
+            const mbModels = [
+                // Budget
+                ['ASRock A520M-HDV', 64, 'AM4', 'Micro-ATX', 25, 'DDR4, M.2 NVMe, HDMI/DVI/VGA', ['office', 'stealth']],
+                ['MSI A520M-A PRO', 69, 'AM4', 'Micro-ATX', 25, 'DDR4, Turbo M.2, Core Boost', ['office', 'stealth']],
+                ['Gigabyte A520M K V2', 67, 'AM4', 'Micro-ATX', 25, 'DDR4, GbE LAN, NVMe PCIe 3.0', ['office', 'stealth']],
+                ['ASUS Prime A520M-K', 72, 'AM4', 'Micro-ATX', 25, 'DDR4, M.2 Support, 5X Protection', ['office', 'stealth']],
+                ['MSI B450M-A PRO MAX II', 74, 'AM4', 'Micro-ATX', 30, 'DDR4, 2.5G LAN, Turbo M.2', ['office', 'gaming', 'stealth']],
+                ['Gigabyte B450M DS3H WiFi', 84, 'AM4', 'Micro-ATX', 30, 'DDR4, Built-in WiFi, M.2', ['office', 'gaming', 'stealth']],
+                ['ASRock B450M Pro4 R2.0', 79, 'AM4', 'Micro-ATX', 30, 'DDR4, Dual M.2, USB-C', ['office', 'gaming', 'stealth']],
+                ['MSI B550M PRO-VDH WiFi', 99, 'AM4', 'Micro-ATX', 35, 'DDR4, PCIe 4.0, WiFi + BT', ['gaming', 'office', 'stealth']],
+                ['ASUS Prime B550M-A WiFi II', 105, 'AM4', 'Micro-ATX', 35, 'DDR4, WiFi 6, Dual M.2', ['gaming', 'office', 'stealth']],
+                ['Gigabyte B550M K', 89, 'AM4', 'Micro-ATX', 35, 'DDR4, Dual NVMe, PCIe 4.0', ['gaming', 'office', 'stealth']],
+                ['Gigabyte B550M DS3H AC', 95, 'AM4', 'Micro-ATX', 35, 'DDR4, Dual Band WiFi, PCIe 4.0', ['gaming', 'office', 'stealth']],
+                ['ASRock B550M Pro4', 94, 'AM4', 'Micro-ATX', 35, 'DDR4, Nahimic Audio, PCIe 4.0', ['gaming', 'office', 'stealth']],
+                ['ASRock B550M Pro SE White', 109, 'AM4', 'Micro-ATX', 35, 'DDR4, All-White PCB & Heatsinks', ['gaming', 'white']],
+                ['MSI PRO B550M-VC WiFi', 112, 'AM4', 'Micro-ATX', 35, 'DDR4, WiFi 6E, 8x SATA', ['workstation', 'office', 'stealth']],
+                ['ASRock H610M-HVS', 74, 'LGA1700', 'Micro-ATX', 25, 'DDR4, Ultra M.2, HDMI', ['office', 'stealth']],
+                ['MSI PRO H610M-G DDR4', 79, 'LGA1700', 'Micro-ATX', 25, 'DDR4, PCIe 4.0, M.2 Shield', ['office', 'stealth']],
+                ['ASUS Prime H610M-E D4', 82, 'LGA1700', 'Micro-ATX', 25, 'DDR4, Dual M.2, Realtek 1Gb', ['office', 'stealth']],
+                ['Gigabyte H610M S2H V2 DDR4', 79, 'LGA1700', 'Micro-ATX', 25, 'DDR4, NVMe PCIe 3.0 x4', ['office', 'stealth']],
+                ['MSI PRO B660M-A WiFi DDR4', 119, 'LGA1700', 'Micro-ATX', 35, 'DDR4, WiFi 6, Dual M.2', ['gaming', 'office', 'stealth']],
+                ['Gigabyte B660M DS3H AX DDR4', 109, 'LGA1700', 'Micro-ATX', 35, 'DDR4, WiFi 6, 2.5GbE LAN', ['gaming', 'office', 'stealth']],
+                ['ASRock B660M Pro RS', 99, 'LGA1700', 'Micro-ATX', 35, 'DDR4, PCIe 4.0, Steel Slot', ['gaming', 'office', 'stealth']],
+                ['MSI PRO B760M-P DDR4', 99, 'LGA1700', 'Micro-ATX', 35, 'DDR4, Dual M.2, USB 3.2 Gen 2', ['office', 'gaming', 'stealth']],
+                ['Gigabyte B760M DS3H DDR4', 105, 'LGA1700', 'Micro-ATX', 35, 'DDR4, 2.5GbE LAN, PCIe 4.0', ['office', 'gaming', 'stealth']],
+                ['ASRock B760M-HDV/M.2 D4', 94, 'LGA1700', 'Micro-ATX', 35, 'DDR4, Dual M.2, HDMI/DP', ['office', 'stealth']],
+                ['ASUS Prime B760M-A D4', 119, 'LGA1700', 'Micro-ATX', 35, 'DDR4, Dual PCIe 4.0 M.2', ['office', 'gaming']],
+                ['ASRock A620M-HDV/M.2+', 84, 'AM5', 'Micro-ATX', 30, 'DDR5, Dual M.2, USB-C', ['office', 'gaming', 'stealth']],
+                ['MSI PRO A620M-E', 79, 'AM5', 'Micro-ATX', 30, 'DDR5, Core Boost, M.2', ['office', 'stealth']],
+                ['Gigabyte A620M S2H', 82, 'AM5', 'Micro-ATX', 30, 'DDR5, Smart Fan 6, M.2', ['office', 'stealth']],
+                ['ASUS Prime A620M-K', 85, 'AM5', 'Micro-ATX', 30, 'DDR5, Aura Sync, PCIe 4.0', ['office', 'stealth']],
+                // Midrange
+                ['MSI B550-A PRO', 119, 'AM4', 'ATX', 40, 'DDR4, Extended Heatsink, Dual M.2', ['gaming', 'workstation', 'stealth']],
+                ['MSI MAG B550 Tomahawk Max WiFi', 159, 'AM4', 'ATX', 40, 'DDR4, WiFi 6E, 2.5G LAN', ['gaming', 'stealth']],
+                ['ASUS TUF Gaming B550-Plus WiFi II', 149, 'AM4', 'ATX', 40, 'DDR4, WiFi 6, AI Noise Cancel', ['gaming', 'stealth']],
+                ['ASUS ROG Strix B550-F Gaming WiFi II', 169, 'AM4', 'ATX', 40, 'DDR4, WiFi 6E, Aura Sync RGB', ['gaming', 'rgb']],
+                ['ASUS ROG Strix B550-A Gaming White', 159, 'AM4', 'ATX', 40, 'DDR4, White/Silver Shroud', ['gaming', 'white']],
+                ['Gigabyte B550 AORUS Elite AX V2', 149, 'AM4', 'ATX', 40, 'DDR4, WiFi 6E, 12+2 VRM', ['gaming', 'stealth']],
+                ['ASRock B650M-HDV/M.2', 119, 'AM5', 'Micro-ATX', 35, 'DDR5, Blazing M.2 Gen5, 2.5G', ['gaming', 'office', 'stealth']],
+                ['ASRock B650M Pro RS WiFi', 149, 'AM5', 'Micro-ATX', 35, 'DDR5, White/Silver, Triple M.2', ['gaming', 'office', 'white']],
+                ['MSI PRO B650M-A WiFi', 145, 'AM5', 'Micro-ATX', 35, 'DDR5, WiFi 6E, Dual M.2', ['gaming', 'office', 'stealth']],
+                ['Gigabyte B650M Gaming Plus WiFi', 139, 'AM5', 'Micro-ATX', 35, 'DDR5, WiFi 6E, 2.5GbE LAN', ['gaming', 'stealth']],
+                ['Gigabyte B650M AORUS Elite AX', 179, 'AM5', 'Micro-ATX', 40, 'DDR5, 12+2+2 VRM, WiFi 6E', ['gaming', 'stealth']],
+                ['Gigabyte B650M AORUS Elite AX Ice', 189, 'AM5', 'Micro-ATX', 40, 'DDR5, All-White PCB & Heatsinks', ['gaming', 'white']],
+                ['ASUS TUF Gaming B650M-Plus WiFi', 185, 'AM5', 'Micro-ATX', 40, 'DDR5, PCIe 5.0 M.2, WiFi 6', ['gaming', 'stealth']],
+                ['MSI MAG B650M Mortar WiFi', 189, 'AM5', 'Micro-ATX', 40, 'DDR5, 12+2+1 Duet Rail, WiFi 6E', ['gaming', 'stealth']],
+                ['MSI B650 Gaming Plus WiFi', 169, 'AM5', 'ATX', 40, 'DDR5, WiFi 6E, 2.5G LAN', ['gaming', 'stealth']],
+                ['Gigabyte B650 Eagle AX', 159, 'AM5', 'ATX', 40, 'DDR5, Triple M.2, WiFi 6E', ['gaming', 'stealth']],
+                ['ASRock B650 LiveMixer', 149, 'AM5', 'ATX', 40, 'DDR5, 23 USB Ports, Creator', ['workstation', 'rgb']],
+                ['ASRock B650 Steel Legend WiFi', 179, 'AM5', 'ATX', 40, 'DDR5, PCIe 5.0, White/Silver', ['gaming', 'white', 'rgb']],
+                ['MSI MAG B650 Tomahawk WiFi', 199, 'AM5', 'ATX', 40, 'DDR5, Heavy Heatsinks, WiFi 6E', ['gaming', 'stealth']],
+                ['ASUS TUF Gaming B650-Plus WiFi', 189, 'AM5', 'ATX', 40, 'DDR5, PCIe 5.0 M.2, WiFi 6', ['gaming', 'stealth']],
+                ['Gigabyte B650 AORUS Elite AX V2', 195, 'AM5', 'ATX', 40, 'DDR5, WiFi 6E, EZ-Latch', ['gaming', 'stealth']],
+                ['Gigabyte B650 AORUS Elite AX Ice', 209, 'AM5', 'ATX', 40, 'DDR5, Pure White ATX', ['gaming', 'white']],
+                ['ASRock B650E PG Riptide WiFi', 189, 'AM5', 'ATX', 45, 'DDR5, PCIe 5.0 GPU + M.2', ['gaming', 'stealth']],
+                ['ASUS ROG Strix B650-A Gaming WiFi', 229, 'AM5', 'ATX', 45, 'DDR5, White/Silver Shroud', ['gaming', 'white', 'rgb']],
+                ['ASUS ROG Strix B650E-F Gaming WiFi', 249, 'AM5', 'ATX', 45, 'DDR5, PCIe 5.0, Aura Sync', ['gaming', 'rgb']],
+                ['MSI B760 Gaming Plus WiFi', 159, 'LGA1700', 'ATX', 40, 'DDR5, WiFi 6E, Dual M.2', ['gaming', 'stealth']],
+                ['ASRock B760M Steel Legend WiFi', 149, 'LGA1700', 'Micro-ATX', 40, 'DDR5, White/Silver, PCIe 5.0', ['gaming', 'white', 'rgb']],
+                ['MSI MAG B760 Tomahawk WiFi', 189, 'LGA1700', 'ATX', 40, 'DDR5, Triple M.2, WiFi 6E', ['gaming', 'stealth']],
+                ['ASUS TUF Gaming B760-Plus WiFi', 185, 'LGA1700', 'ATX', 40, 'DDR5, PCIe 5.0, WiFi 6', ['gaming', 'stealth']],
+                ['ASUS ROG Strix B760-A Gaming WiFi', 209, 'LGA1700', 'ATX', 40, 'DDR5, White/Silver, WiFi 6E', ['gaming', 'white', 'rgb']],
+                ['Gigabyte B760 AORUS Elite AX', 179, 'LGA1700', 'ATX', 40, 'DDR5, Twin 12+1+1 VRM', ['gaming', 'stealth']],
+                ['MSI PRO Z790-P WiFi', 189, 'LGA1700', 'ATX', 45, 'DDR5, 4x M.2, WiFi 6E', ['gaming', 'workstation', 'stealth']],
+                ['Gigabyte Z790 UD AC', 179, 'LGA1700', 'ATX', 45, 'DDR5, 16+1+1 VRM, Triple M.2', ['gaming', 'workstation', 'stealth']],
+                ['ASRock Z790 PG Lightning', 169, 'LGA1700', 'ATX', 45, 'DDR5, PCIe 5.0, 4x M.2', ['gaming', 'stealth']],
+                ['MSI PRO Z790-A Max WiFi', 229, 'LGA1700', 'ATX', 45, 'DDR5, WiFi 7, 5G LAN', ['gaming', 'workstation', 'stealth']],
+                ['ASUS TUF Gaming Z790-Plus WiFi', 229, 'LGA1700', 'ATX', 45, 'DDR5, PCIe 5.0, WiFi 6E', ['gaming', 'stealth']],
+                ['Gigabyte Z790 AORUS Elite AX', 239, 'LGA1700', 'ATX', 45, 'DDR5, 16+1+2 VRM, WiFi 6E', ['gaming', 'stealth']],
+                ['Gigabyte Z790 AORUS Elite AX Ice', 249, 'LGA1700', 'ATX', 45, 'DDR5, All-White ATX', ['gaming', 'white']],
+                ['ASRock Z890 Pro RS WiFi', 219, 'LGA1851', 'ATX', 45, 'DDR5, Thunderbolt 4, White/Silver', ['gaming', 'workstation', 'white']],
+                ['MSI PRO Z890-P WiFi', 229, 'LGA1851', 'ATX', 45, 'DDR5, WiFi 7, Thunderbolt 4', ['gaming', 'workstation', 'stealth']],
+                // Flagship
+                ['MSI MAG Z790 Tomahawk Max WiFi', 279, 'LGA1700', 'ATX', 50, 'DDR5, WiFi 7, PCIe 5.0 M.2', ['gaming', 'workstation', 'stealth']],
+                ['ASUS ROG Strix Z790-A Gaming WiFi II', 329, 'LGA1700', 'ATX', 50, 'DDR5, White/Silver, WiFi 7', ['gaming', 'white', 'rgb']],
+                ['ASUS ROG Strix Z790-E Gaming WiFi II', 399, 'LGA1700', 'ATX', 55, 'DDR5, 18+1+2 VRM, WiFi 7', ['gaming', 'workstation', 'rgb']],
+                ['ASUS ROG Maximus Z790 Dark Hero', 599, 'LGA1700', 'ATX', 60, 'DDR5, Polymo Lighting, Dual TB4', ['gaming', 'workstation', 'rgb', 'stealth']],
+                ['ASUS ROG Maximus Z790 Formula', 679, 'LGA1700', 'ATX', 60, 'DDR5, HybridChill VRM, White', ['gaming', 'white', 'rgb']],
+                ['MSI MEG Z790 ACE MAX', 649, 'LGA1700', 'ATX', 60, 'DDR5, 24+1+2 VRM, Dual TB4', ['gaming', 'workstation', 'stealth']],
+                ['Gigabyte Z790 AORUS Master X', 499, 'LGA1700', 'ATX', 55, 'DDR5, 20+1+2 VRM, 10GbE LAN', ['gaming', 'workstation', 'rgb']],
+                ['ASUS ProArt Z790-Creator WiFi', 419, 'LGA1700', 'ATX', 55, 'DDR5, 10GbE + 2.5GbE, Dual TB4', ['workstation', 'stealth']],
+                ['ASRock X670E Steel Legend', 259, 'AM5', 'ATX', 50, 'DDR5, PCIe 5.0, White/Silver', ['gaming', 'white', 'rgb']],
+                ['MSI MAG X670E Tomahawk WiFi', 259, 'AM5', 'ATX', 50, 'DDR5, PCIe 5.0, 4x M.2', ['gaming', 'workstation', 'stealth']],
+                ['ASUS TUF Gaming X670E-Plus WiFi', 279, 'AM5', 'ATX', 50, 'DDR5, PCIe 5.0, WiFi 6E', ['gaming', 'stealth']],
+                ['Gigabyte X670E AORUS Pro X', 289, 'AM5', 'ATX', 50, 'DDR5, Pure White PCB & Armor', ['gaming', 'white']],
+                ['ASRock X670E Taichi', 429, 'AM5', 'ATX', 55, 'DDR5, 24+2+1 VRM, Dual USB4', ['gaming', 'workstation', 'rgb']],
+                ['ASRock X670E Taichi Carrara', 449, 'AM5', 'ATX', 55, 'DDR5, Marble White Edition', ['gaming', 'white', 'rgb']],
+                ['ASUS ROG Strix X670E-A Gaming WiFi', 349, 'AM5', 'ATX', 55, 'DDR5, White/Silver, PCIe 5.0', ['gaming', 'white', 'rgb']],
+                ['ASUS ROG Strix X670E-E Gaming WiFi', 429, 'AM5', 'ATX', 55, 'DDR5, 18+2 VRM, Q-Release', ['gaming', 'workstation', 'rgb']],
+                ['ASUS ROG Crosshair X670E Hero', 599, 'AM5', 'ATX', 60, 'DDR5, Polymo Display, Dual USB4', ['gaming', 'workstation', 'rgb']],
+                ['ASUS ProArt X670E-Creator WiFi', 449, 'AM5', 'ATX', 55, 'DDR5, 10GbE LAN, Dual USB4', ['workstation', 'stealth']],
+                ['MSI MEG X670E ACE', 599, 'AM5', 'ATX', 60, 'DDR5, 22+2+1 VRM, 10GbE LAN', ['workstation', 'gaming', 'stealth']],
+                ['ASRock X870 Pro RS WiFi', 209, 'AM5', 'ATX', 45, 'DDR5, USB4, White/Silver', ['gaming', 'white']],
+                ['MSI MAG X870 Tomahawk WiFi', 289, 'AM5', 'ATX', 50, 'DDR5, WiFi 7, 5G LAN, Dual USB4', ['gaming', 'workstation', 'stealth']],
+                ['Gigabyte X870 AORUS Elite WiFi7', 279, 'AM5', 'ATX', 50, 'DDR5, WiFi 7, EZ-Latch Plus', ['gaming', 'stealth']],
+                ['Gigabyte X870 AORUS Elite WiFi7 Ice', 289, 'AM5', 'ATX', 50, 'DDR5, Pure White WiFi 7', ['gaming', 'white']],
+                ['ASUS ROG Strix X870-A Gaming WiFi', 349, 'AM5', 'ATX', 55, 'DDR5, White/Silver, WiFi 7', ['gaming', 'white', 'rgb']],
+                ['ASUS ROG Strix X870E-E Gaming WiFi', 479, 'AM5', 'ATX', 55, 'DDR5, 18+2+2 VRM, WiFi 7', ['gaming', 'workstation', 'rgb']],
+                ['ASUS ROG Crosshair X870E Hero', 699, 'AM5', 'ATX', 60, 'DDR5, Flagship AM5, Dual USB4', ['gaming', 'workstation', 'rgb']],
+                ['MSI MPG X870E Carbon WiFi', 499, 'AM5', 'ATX', 55, 'DDR5, Dual 5G+2.5G LAN, WiFi 7', ['gaming', 'workstation', 'rgb']],
+                ['Gigabyte X870E AORUS Master', 499, 'AM5', 'ATX', 55, 'DDR5, 16+2+2 VRM, WiFi 7', ['gaming', 'workstation', 'rgb']],
+                ['ASUS ROG Maximus Z890 Hero', 699, 'LGA1851', 'ATX', 60, 'DDR5, 22+1+2 VRM, Dual TB4', ['gaming', 'workstation', 'rgb']],
+                ['MSI MEG Z890 ACE', 699, 'LGA1851', 'ATX', 60, 'DDR5, 24+1+2 VRM, 10GbE LAN', ['gaming', 'workstation', 'stealth']],
+                ['ASUS ProArt Z890-Creator WiFi', 499, 'LGA1851', 'ATX', 55, 'DDR5, Thunderbolt 5, 10GbE', ['workstation', 'stealth']],
+                ['ASUS Pro WS TRX50-SAGE WiFi', 899, 'sTR5', 'ATX', 75, 'DDR5 ECC R-DIMM, Threadripper', ['workstation', 'stealth']]
+            ];
+            mbModels.forEach((m, i) => db.motherboard.push({ id: `mb-${i+1}`, name: m[0], price: m[1], socket: m[2], formFactor: m[3], wattage: m[4], specs: m[5], tags: m[6], img: imgs.mb[0] }));
+
+            // 4. RAM (104 real kits across DDR4 & DDR5, 16GB to 192GB, Black/White/RGB)
+            const ramKits = [
+                // Budget
+                ['Corsair Vengeance LPX 16GB (2x8GB) DDR4-3200', 36, 6, 'CL16, Low Profile Black', ['office', 'gaming', 'stealth']],
+                ['G.Skill Ripjaws V 16GB (2x8GB) DDR4-3200', 34, 6, 'CL16, Classic Black', ['office', 'gaming', 'stealth']],
+                ['TeamGroup T-Force Vulcan Z 16GB (2x8GB) DDR4-3200', 32, 6, 'CL16, Aluminum Heatsink', ['office', 'gaming', 'stealth']],
+                ['Silicon Power Gaming 16GB (2x8GB) DDR4-3200', 30, 6, 'CL16, Budget Value', ['office', 'gaming', 'stealth']],
+                ['TeamGroup T-Force Delta RGB 16GB (2x8GB) DDR4-3200', 42, 8, 'CL16, 120° Ultra-Wide RGB', ['gaming', 'rgb']],
+                ['TeamGroup T-Force Delta RGB White 16GB (2x8GB) DDR4-3200', 44, 8, 'CL16, White RGB', ['gaming', 'white', 'rgb']],
+                ['Corsair Vengeance RGB Pro 16GB (2x8GB) DDR4-3200', 49, 8, 'CL16, Dynamic Multi-Zone RGB', ['gaming', 'rgb']],
+                ['Corsair Vengeance RGB Pro SL White 16GB (2x8GB) DDR4-3200', 52, 8, 'CL16, Compact White RGB', ['gaming', 'white', 'rgb']],
+                ['G.Skill Trident Z RGB 16GB (2x8GB) DDR4-3200', 48, 8, 'CL16, Brushed Aluminum RGB', ['gaming', 'rgb']],
+                ['Kingston FURY Beast 16GB (2x8GB) DDR4-3200', 38, 6, 'CL16, Plug N Play', ['office', 'gaming', 'stealth']],
+                ['Crucial Pro 16GB (2x8GB) DDR4-3200', 35, 6, 'CL22, Matte Black Origami', ['office', 'stealth']],
+                ['Corsair Vengeance LPX 16GB (2x8GB) DDR4-3600', 42, 7, 'CL18, Ryzen Tuned', ['gaming', 'stealth']],
+                ['G.Skill Ripjaws V 16GB (2x8GB) DDR4-3600', 40, 7, 'CL18, Dual Channel', ['gaming', 'stealth']],
+                ['Kingston FURY Beast 16GB (2x8GB) DDR5-5200', 56, 10, 'CL40, Entry DDR5', ['office', 'gaming', 'stealth']],
+                ['Crucial 16GB (2x8GB) DDR5-4800', 49, 9, 'CL40, Jedec Standard DDR5', ['office', 'stealth']],
+                ['TeamGroup T-Force Vulcan 16GB (2x8GB) DDR5-5600', 58, 10, 'CL36, Sleek Black DDR5', ['office', 'gaming', 'stealth']],
+                ['Corsair Vengeance 16GB (2x8GB) DDR5-5200', 62, 10, 'CL40, Solid Aluminum', ['office', 'gaming', 'stealth']],
+                ['G.Skill Flare X5 16GB (2x8GB) DDR5-5600', 59, 10, 'CL36, AMD EXPO Ready', ['gaming', 'stealth']],
+                ['Patriot Viper Venom 16GB (2x8GB) DDR5-5600', 54, 10, 'CL36, Dual Channel', ['office', 'gaming', 'stealth']],
+                ['ADATA XPG Lancer 16GB (2x8GB) DDR5-5200', 57, 10, 'CL38, Black Heatsink', ['office', 'gaming', 'stealth']],
+                // Midrange
+                ['Corsair Vengeance LPX 32GB (2x16GB) DDR4-3200', 58, 8, 'CL16, High Capacity DDR4', ['gaming', 'workstation', 'stealth']],
+                ['Corsair Vengeance LPX 32GB (2x16GB) DDR4-3600', 64, 9, 'CL18, Dual Channel Black', ['gaming', 'workstation', 'stealth']],
+                ['G.Skill Ripjaws V 32GB (2x16GB) DDR4-3600', 62, 9, 'CL16, Low Latency DDR4', ['gaming', 'workstation', 'stealth']],
+                ['TeamGroup T-Force Vulcan Z 32GB (2x16GB) DDR4-3600', 55, 8, 'CL18, Gray/Black', ['gaming', 'workstation', 'stealth']],
+                ['TeamGroup T-Force Delta RGB 32GB (2x16GB) DDR4-3600', 69, 10, 'CL18, Black RGB', ['gaming', 'rgb']],
+                ['TeamGroup T-Force Delta RGB White 32GB (2x16GB) DDR4-3600', 72, 10, 'CL18, White RGB', ['gaming', 'white', 'rgb']],
+                ['Corsair Vengeance RGB Pro 32GB (2x16GB) DDR4-3600', 79, 10, 'CL18, iCUE RGB', ['gaming', 'rgb']],
+                ['Corsair Vengeance RGB Pro SL White 32GB (2x16GB) DDR4-3600', 82, 10, 'CL18, White iCUE RGB', ['gaming', 'white', 'rgb']],
+                ['G.Skill Trident Z Neo 32GB (2x16GB) DDR4-3600', 84, 10, 'CL16, Ryzen Optimized RGB', ['gaming', 'rgb']],
+                ['Kingston FURY Renegade 32GB (2x16GB) DDR4-3600', 74, 9, 'CL16, Two-Tone Black/Silver', ['gaming', 'stealth']],
+                ['Crucial Pro 32GB (2x16GB) DDR5-5600', 79, 11, 'CL46, Low Profile Black', ['office', 'workstation', 'stealth']],
+                ['Crucial Pro Overclocking 32GB (2x16GB) DDR5-6000', 86, 12, 'CL36, XMP & EXPO', ['gaming', 'stealth']],
+                ['TeamGroup T-Create Expert 32GB (2x16GB) DDR5-6000', 88, 12, 'CL30, Creator Minimal Black', ['workstation', 'gaming', 'stealth']],
+                ['TeamGroup T-Create Expert White 32GB (2x16GB) DDR5-6000', 92, 12, 'CL30, Creator Minimal White', ['workstation', 'gaming', 'white']],
+                ['TeamGroup T-Force Vulcan 32GB (2x16GB) DDR5-6000', 85, 12, 'CL30, Black Heatsink', ['gaming', 'stealth']],
+                ['TeamGroup T-Force Delta RGB 32GB (2x16GB) DDR5-6000', 96, 14, 'CL30, Black RGB EXPO', ['gaming', 'rgb']],
+                ['TeamGroup T-Force Delta RGB White 32GB (2x16GB) DDR5-6000', 99, 14, 'CL30, White RGB EXPO', ['gaming', 'white', 'rgb']],
+                ['G.Skill Flare X5 32GB (2x16GB) DDR5-6000', 94, 12, 'CL30, Low Profile AMD EXPO', ['gaming', 'workstation', 'stealth']],
+                ['G.Skill Ripjaws S5 32GB (2x16GB) DDR5-6000', 94, 12, 'CL30, Low Profile Black XMP', ['gaming', 'workstation', 'stealth']],
+                ['G.Skill Ripjaws S5 White 32GB (2x16GB) DDR5-6000', 98, 12, 'CL30, Low Profile White XMP', ['gaming', 'white']],
+                ['G.Skill Trident Z5 Neo 32GB (2x16GB) DDR5-6000', 104, 12, 'CL30, Matte Black EXPO', ['gaming', 'stealth']],
+                ['G.Skill Trident Z5 Neo RGB 32GB (2x16GB) DDR5-6000', 109, 14, 'CL30, Black RGB EXPO', ['gaming', 'rgb']],
+                ['G.Skill Trident Z5 Neo RGB White 32GB (2x16GB) DDR5-6000', 114, 14, 'CL30, White RGB EXPO', ['gaming', 'white', 'rgb']],
+                ['G.Skill Trident Z5 RGB 32GB (2x16GB) DDR5-6000', 109, 14, 'CL30, Metallic Silver/Black', ['gaming', 'rgb']],
+                ['G.Skill Trident Z5 RGB 32GB (2x16GB) DDR5-6400', 115, 14, 'CL32, Intel XMP 3.0', ['gaming', 'rgb']],
+                ['Corsair Vengeance 32GB (2x16GB) DDR5-6000', 105, 12, 'CL30, Gray/Black EXPO/XMP', ['gaming', 'workstation', 'stealth']],
+                ['Corsair Vengeance RGB 32GB (2x16GB) DDR5-6000', 114, 14, 'CL30, Black 10-Zone RGB', ['gaming', 'rgb']],
+                ['Corsair Vengeance RGB White 32GB (2x16GB) DDR5-6000', 119, 14, 'CL30, White 10-Zone RGB', ['gaming', 'white', 'rgb']],
+                ['Corsair Vengeance RGB 32GB (2x16GB) DDR5-6400', 124, 14, 'CL32, High-Speed XMP', ['gaming', 'rgb']],
+                ['Kingston FURY Beast 32GB (2x16GB) DDR5-6000', 102, 12, 'CL30, Black EXPO/XMP', ['gaming', 'stealth']],
+                ['Kingston FURY Beast RGB 32GB (2x16GB) DDR5-6000', 112, 14, 'CL30, Infrared Sync RGB', ['gaming', 'rgb']],
+                ['Kingston FURY Beast White RGB 32GB (2x16GB) DDR5-6000', 116, 14, 'CL30, White RGB', ['gaming', 'white', 'rgb']],
+                ['ADATA XPG Lancer Blade 32GB (2x16GB) DDR5-6000', 92, 12, 'CL30, Low-Profile Black', ['gaming', 'stealth']],
+                ['ADATA XPG Lancer Blade White 32GB (2x16GB) DDR5-6000', 95, 12, 'CL30, Low-Profile White', ['gaming', 'white']],
+                ['Patriot Viper Venom 32GB (2x16GB) DDR5-6000', 84, 12, 'CL30, Value Performance', ['gaming', 'stealth']],
+                ['Patriot Viper Venom RGB 32GB (2x16GB) DDR5-6000', 89, 14, 'CL30, RGB Lightbar', ['gaming', 'rgb']],
+                ['Lexar Ares RGB 32GB (2x16GB) DDR5-6000', 95, 14, 'CL30, Black RGB', ['gaming', 'rgb']],
+                ['Lexar Ares RGB White 32GB (2x16GB) DDR5-6400', 105, 14, 'CL32, White RGB', ['gaming', 'white', 'rgb']],
+                ['Silicon Power XPOWER Zenith 32GB (2x16GB) DDR5-6000', 83, 12, 'CL30, Black Aluminum', ['gaming', 'stealth']],
+                ['Silicon Power XPOWER Zenith White 32GB (2x16GB) DDR5-6000', 86, 12, 'CL30, White Aluminum', ['gaming', 'white']],
+                // Flagship
+                ['Corsair Dominator Platinum RGB 32GB (2x16GB) DDR5-6200', 159, 16, 'CL36, Capellix LEDs', ['gaming', 'rgb']],
+                ['Corsair Dominator Platinum RGB White 32GB (2x16GB) DDR5-6200', 165, 16, 'CL36, White Capellix', ['gaming', 'white', 'rgb']],
+                ['Corsair Dominator Titanium 32GB (2x16GB) DDR5-6600', 179, 16, 'CL32, Swappable Top Bar', ['gaming', 'rgb', 'stealth']],
+                ['Corsair Dominator Titanium White 32GB (2x16GB) DDR5-6600', 185, 16, 'CL32, White Swappable Top', ['gaming', 'white', 'rgb']],
+                ['Corsair Dominator Titanium 32GB (2x16GB) DDR5-7200', 199, 18, 'CL34, Extreme Speed', ['gaming', 'rgb']],
+                ['G.Skill Trident Z5 RGB 32GB (2x16GB) DDR5-7200', 149, 18, 'CL34, Extreme XMP', ['gaming', 'rgb']],
+                ['G.Skill Trident Z5 RGB 32GB (2x16GB) DDR5-7600', 179, 18, 'CL36, Enthusiast Bin', ['gaming', 'rgb']],
+                ['G.Skill Trident Z5 RGB 32GB (2x16GB) DDR5-8000', 219, 20, 'CL38, Ultra High Frequency', ['gaming', 'rgb']],
+                ['G.Skill Trident Z5 Royal 32GB (2x16GB) DDR5-6400 Silver', 159, 16, 'CL32, Crystalline Lightbar', ['gaming', 'rgb']],
+                ['G.Skill Trident Z5 Royal 32GB (2x16GB) DDR5-6400 Gold', 165, 16, 'CL32, Gold Mirror Finish', ['gaming', 'rgb']],
+                ['TeamGroup T-Force Xtreem 32GB (2x16GB) DDR5-7600', 169, 18, 'CL36, 2mm Thick Anodized', ['gaming', 'stealth']],
+                ['TeamGroup T-Force Xtreem ARGB 32GB (2x16GB) DDR5-7200', 164, 18, 'CL34, Aurora Diffuser', ['gaming', 'rgb']],
+                ['Corsair Vengeance 48GB (2x24GB) DDR5-6000', 149, 14, 'CL30, Non-Binary 48GB', ['workstation', 'gaming', 'stealth']],
+                ['Corsair Vengeance RGB 48GB (2x24GB) DDR5-7000', 189, 16, 'CL36, 48GB High-Speed', ['workstation', 'gaming', 'rgb']],
+                ['G.Skill Trident Z5 RGB 48GB (2x24GB) DDR5-6800', 179, 16, 'CL34, 48GB Enthusiast', ['workstation', 'gaming', 'rgb']],
+                ['G.Skill Trident Z5 RGB 48GB (2x24GB) DDR5-8000', 259, 20, 'CL40, 48GB Extreme OC', ['workstation', 'gaming', 'rgb']],
+                ['Corsair Vengeance LPX 64GB (2x32GB) DDR4-3200', 115, 12, 'CL16, 64GB Workstation', ['workstation', 'stealth']],
+                ['G.Skill Ripjaws V 64GB (2x32GB) DDR4-3600', 124, 12, 'CL18, 64GB Dual Channel', ['workstation', 'stealth']],
+                ['Crucial Pro 64GB (2x32GB) DDR5-5600', 154, 14, 'CL46, 64GB Plug-and-Play', ['workstation', 'stealth']],
+                ['TeamGroup T-Create Expert 64GB (2x32GB) DDR5-6000', 175, 16, 'CL34, 64GB Creator Black', ['workstation', 'gaming', 'stealth']],
+                ['TeamGroup T-Create Expert White 64GB (2x32GB) DDR5-6000', 179, 16, 'CL34, 64GB Creator White', ['workstation', 'white']],
+                ['G.Skill Flare X5 64GB (2x32GB) DDR5-6000', 179, 16, 'CL30, 64GB AMD EXPO', ['workstation', 'gaming', 'stealth']],
+                ['G.Skill Ripjaws S5 64GB (2x32GB) DDR5-6000', 179, 16, 'CL30, 64GB Intel XMP', ['workstation', 'gaming', 'stealth']],
+                ['G.Skill Trident Z5 Neo 64GB (2x32GB) DDR5-6000', 189, 16, 'CL30, 64GB Matte Black', ['workstation', 'gaming', 'stealth']],
+                ['G.Skill Trident Z5 Neo RGB 64GB (2x32GB) DDR5-6000', 199, 18, 'CL30, 64GB Black RGB', ['workstation', 'gaming', 'rgb']],
+                ['G.Skill Trident Z5 Neo RGB White 64GB (2x32GB) DDR5-6000', 205, 18, 'CL30, 64GB White RGB', ['workstation', 'white', 'rgb']],
+                ['G.Skill Trident Z5 RGB 64GB (2x32GB) DDR5-6400', 209, 18, 'CL32, 64GB XMP 3.0', ['workstation', 'gaming', 'rgb']],
+                ['Corsair Vengeance 64GB (2x32GB) DDR5-6000', 189, 16, 'CL30, 64GB EXPO/XMP', ['workstation', 'gaming', 'stealth']],
+                ['Corsair Vengeance RGB 64GB (2x32GB) DDR5-6000', 199, 18, 'CL30, 64GB Black RGB', ['workstation', 'gaming', 'rgb']],
+                ['Corsair Vengeance RGB White 64GB (2x32GB) DDR5-6000', 209, 18, 'CL30, 64GB White RGB', ['workstation', 'white', 'rgb']],
+                ['Kingston FURY Beast 64GB (2x32GB) DDR5-6000', 185, 16, 'CL30, 64GB Black', ['workstation', 'stealth']],
+                ['Corsair Dominator Titanium 64GB (2x32GB) DDR5-6600', 279, 20, 'CL32, 64GB Flagship Black', ['workstation', 'gaming', 'rgb']],
+                ['Corsair Dominator Titanium White 64GB (2x32GB) DDR5-6600', 289, 20, 'CL32, 64GB Flagship White', ['workstation', 'white', 'rgb']],
+                ['Crucial Pro 96GB (2x48GB) DDR5-5600', 239, 18, 'CL46, 96GB High-Density', ['workstation', 'stealth']],
+                ['Corsair Vengeance 96GB (2x48GB) DDR5-5600', 259, 18, 'CL40, 96GB Workstation', ['workstation', 'stealth']],
+                ['Corsair Vengeance RGB 96GB (2x48GB) DDR5-6000', 289, 20, 'CL30, 96GB Low Latency', ['workstation', 'gaming', 'rgb']],
+                ['G.Skill Trident Z5 RGB 96GB (2x48GB) DDR5-6400', 299, 20, 'CL32, 96GB Pro Creator', ['workstation', 'rgb']],
+                ['Corsair Dominator Titanium 96GB (2x48GB) DDR5-6600', 369, 22, 'CL32, 96GB Flagship', ['workstation', 'rgb']],
+                ['Corsair Vengeance 128GB (4x32GB) DDR5-5600', 379, 24, 'CL40, 128GB 3D/AI Rendering', ['workstation', 'stealth']],
+                ['G.Skill Trident Z5 Neo RGB 128GB (4x32GB) DDR5-6000', 419, 26, 'CL30, 128GB Quad-Stick', ['workstation', 'rgb']],
+                ['Corsair Vengeance 192GB (4x48GB) DDR5-5200', 549, 28, 'CL38, Max 192GB Capacity', ['workstation', 'stealth']],
+                ['G.Skill Ripjaws S5 192GB (4x48GB) DDR5-5200', 529, 28, 'CL40, 192GB AI/LLM Rig', ['workstation', 'stealth']],
+                ['G.Skill Zeta R5 Neo 128GB (4x32GB) DDR5-6400 ECC R-DIMM', 699, 32, 'CL32, Threadripper Quad-Ch', ['workstation', 'stealth']],
+                ['Kingston FURY Renegade Pro 256GB (8x32GB) DDR5-6000 ECC', 1299, 48, 'CL32, Octa-Channel Server', ['workstation', 'stealth']]
+            ];
+            ramKits.forEach((m, i) => db.ram.push({ id: `ram-${i+1}`, name: m[0], price: m[1], wattage: m[2], specs: m[3], tags: m[4], img: imgs.ram[0] }));
+
+            // 5. Storage / SSDs (104 real drives from 250GB SATA to 8TB PCIe 5.0 NVMe)
+            const ssdDrives = [
+                // Budget
+                ['Kingston A400 240GB 2.5" SATA III SSD', 24, 2, '500 MB/s Read, Boot Drive', ['office', 'stealth']],
+                ['Crucial BX500 240GB 2.5" SATA III SSD', 26, 2, '540 MB/s Read, 3D NAND', ['office', 'stealth']],
+                ['PNY CS900 250GB 2.5" SATA III SSD', 23, 2, '535 MB/s Read, Slim 7mm', ['office', 'stealth']],
+                ['Kingston A400 480GB 2.5" SATA III SSD', 34, 2, '500 MB/s Read, Reliable SATA', ['office', 'stealth']],
+                ['Crucial BX500 500GB 2.5" SATA III SSD', 36, 2, '540 MB/s Read, 2.5-Inch', ['office', 'stealth']],
+                ['Samsung 870 EVO 500GB 2.5" SATA III SSD', 54, 3, '560 MB/s Read, DRAM Cache', ['office', 'workstation', 'stealth']],
+                ['Kingston NV2 500GB M.2 PCIe 4.0 NVMe', 38, 4, '3500 MB/s Read, M.2 2280', ['office', 'gaming', 'stealth']],
+                ['Kingston NV3 500GB M.2 PCIe 4.0 NVMe', 41, 4, '5000 MB/s Read, Gen4 Value', ['office', 'gaming', 'stealth']],
+                ['Crucial P3 500GB M.2 PCIe 3.0 NVMe', 37, 4, '3500 MB/s Read, Micron 3D', ['office', 'gaming', 'stealth']],
+                ['Crucial P3 Plus 500GB M.2 PCIe 4.0 NVMe', 42, 4, '4700 MB/s Read, Gen4 x4', ['office', 'gaming', 'stealth']],
+                ['WD Blue SN580 500GB M.2 PCIe 4.0 NVMe', 44, 4, '4000 MB/s Read, nCache 4.0', ['office', 'gaming', 'stealth']],
+                ['WD_BLACK SN770 500GB M.2 PCIe 4.0 NVMe', 49, 5, '5000 MB/s Read, Gaming NVMe', ['gaming', 'stealth']],
+                ['TeamGroup MP33 512GB M.2 PCIe 3.0 NVMe', 35, 4, '1700 MB/s Read, SLC Cache', ['office', 'stealth']],
+                ['TeamGroup MP44L 500GB M.2 PCIe 4.0 NVMe', 39, 4, '5000 MB/s Read, Graphene Label', ['office', 'gaming', 'stealth']],
+                ['Silicon Power UD90 500GB M.2 PCIe 4.0 NVMe', 38, 4, '5000 MB/s Read, HMB Support', ['office', 'gaming', 'stealth']],
+                ['Samsung 980 500GB M.2 PCIe 3.0 NVMe', 52, 4, '3100 MB/s Read, V-NAND', ['office', 'stealth']],
+                ['Kingston NV2 1TB M.2 PCIe 4.0 NVMe', 56, 5, '3500 MB/s Read, Popular 1TB', ['office', 'gaming', 'stealth']],
+                ['Kingston NV3 1TB M.2 PCIe 4.0 NVMe', 59, 5, '6000 MB/s Read, Gen4 x4', ['office', 'gaming', 'stealth']],
+                ['Crucial P3 1TB M.2 PCIe 3.0 NVMe', 57, 5, '3500 MB/s Read, 1TB Storage', ['office', 'gaming', 'stealth']],
+                ['Crucial P3 Plus 1TB M.2 PCIe 4.0 NVMe', 62, 5, '5000 MB/s Read, Gen4 Value', ['office', 'gaming', 'stealth']],
+                ['TeamGroup MP33 1TB M.2 PCIe 3.0 NVMe', 53, 5, '1800 MB/s Read, 1TB Budget', ['office', 'stealth']],
+                ['TeamGroup MP44L 1TB M.2 PCIe 4.0 NVMe', 58, 5, '5000 MB/s Read, TLC NAND', ['gaming', 'office', 'stealth']],
+                ['Silicon Power UD90 1TB M.2 PCIe 4.0 NVMe', 56, 5, '5000 MB/s Read, 1TB Gen4', ['gaming', 'office', 'stealth']],
+                ['WD Blue SN580 1TB M.2 PCIe 4.0 NVMe', 64, 5, '4150 MB/s Read, Reliable 1TB', ['office', 'gaming', 'stealth']],
+                ['Crucial BX500 1TB 2.5" SATA III SSD', 59, 3, '540 MB/s Read, 2.5" Expansion', ['office', 'stealth']],
+                ['Kingston A400 960GB 2.5" SATA III SSD', 57, 3, '500 MB/s Read, 2.5" SATA', ['office', 'stealth']],
+                // Midrange
+                ['WD_BLACK SN770 1TB M.2 PCIe 4.0 NVMe', 72, 6, '5150 MB/s Read, DirectStorage', ['gaming', 'stealth']],
+                ['WD_BLACK SN850X 1TB M.2 PCIe 4.0 NVMe', 89, 8, '7300 MB/s Read, DRAM Cache', ['gaming', 'workstation', 'stealth']],
+                ['WD_BLACK SN850X 1TB with Heatsink', 99, 8, '7300 MB/s Read, RGB Heatsink', ['gaming', 'rgb']],
+                ['Samsung 980 PRO 1TB M.2 PCIe 4.0 NVMe', 94, 7, '7000 MB/s Read, Elpis Controller', ['gaming', 'workstation', 'stealth']],
+                ['Samsung 980 PRO 1TB with Heatsink', 104, 7, '7000 MB/s Read, PS5 & PC Ready', ['gaming', 'stealth']],
+                ['Samsung 990 EVO 1TB M.2 PCIe 4.0/5.0', 79, 6, '5000 MB/s Read, Hybrid Gen5 x2', ['gaming', 'office', 'stealth']],
+                ['Samsung 990 EVO Plus 1TB M.2 PCIe 4.0', 84, 6, '7250 MB/s Read, V-NAND 8th Gen', ['gaming', 'workstation', 'stealth']],
+                ['Samsung 990 PRO 1TB M.2 PCIe 4.0 NVMe', 105, 8, '7450 MB/s Read, Top Gen4 1TB', ['gaming', 'workstation', 'stealth']],
+                ['Samsung 990 PRO 1TB with Heatsink', 115, 8, '7450 MB/s Read, RGB Heatsink', ['gaming', 'rgb']],
+                ['SK hynix Platinum P41 1TB PCIe 4.0 NVMe', 89, 7, '7000 MB/s Read, 176-Layer NAND', ['gaming', 'workstation', 'stealth']],
+                ['Solidigm P44 Pro 1TB M.2 PCIe 4.0 NVMe', 88, 7, '7000 MB/s Read, Enthusiast Gen4', ['gaming', 'workstation', 'stealth']],
+                ['Crucial T500 1TB M.2 PCIe 4.0 NVMe', 84, 7, '7300 MB/s Read, 232-Layer TLC', ['gaming', 'workstation', 'stealth']],
+                ['Crucial T500 1TB with Heatsink', 92, 7, '7300 MB/s Read, Integrated Sink', ['gaming', 'stealth']],
+                ['Kingston KC3000 1TB M.2 PCIe 4.0 NVMe', 86, 7, '7000 MB/s Read, Graphene Sink', ['gaming', 'workstation', 'stealth']],
+                ['Kingston Fury Renegade 1TB PCIe 4.0 NVMe', 92, 8, '7300 MB/s Read, Gaming Gen4', ['gaming', 'stealth']],
+                ['Lexar NM790 1TB M.2 PCIe 4.0 NVMe', 76, 6, '7400 MB/s Read, High Efficiency', ['gaming', 'stealth']],
+                ['Corsair MP600 PRO LPX 1TB PCIe 4.0', 89, 7, '7100 MB/s Read, Low-Profile Sink', ['gaming', 'stealth']],
+                ['Corsair MP600 PRO LPX 1TB White', 94, 7, '7100 MB/s Read, White Heatsink', ['gaming', 'white']],
+                ['Sabrent Rocket 4 Plus 1TB PCIe 4.0 NVMe', 95, 7, '7100 MB/s Read, Copper Label', ['workstation', 'gaming', 'stealth']],
+                ['Samsung 870 EVO 1TB 2.5" SATA III SSD', 89, 3, '560 MB/s Read, 600 TBW', ['office', 'workstation', 'stealth']],
+                ['Crucial MX500 1TB 2.5" SATA III SSD', 79, 3, '560 MB/s Read, Hardware Encrypt', ['office', 'stealth']],
+                ['Kingston NV2 2TB M.2 PCIe 4.0 NVMe', 108, 6, '3500 MB/s Read, Budget 2TB', ['gaming', 'office', 'stealth']],
+                ['Kingston NV3 2TB M.2 PCIe 4.0 NVMe', 115, 6, '6000 MB/s Read, Gen4 2TB', ['gaming', 'office', 'stealth']],
+                ['Crucial P3 2TB M.2 PCIe 3.0 NVMe', 109, 6, '3500 MB/s Read, Mass Storage', ['office', 'gaming', 'stealth']],
+                ['Crucial P3 Plus 2TB M.2 PCIe 4.0 NVMe', 114, 6, '5000 MB/s Read, Best Value 2TB', ['gaming', 'office', 'stealth']],
+                ['TeamGroup MP44L 2TB M.2 PCIe 4.0 NVMe', 106, 6, '4800 MB/s Read, 2TB TLC', ['gaming', 'office', 'stealth']],
+                ['TeamGroup MP44 2TB M.2 PCIe 4.0 NVMe', 119, 7, '7400 MB/s Read, High-Speed 2TB', ['gaming', 'workstation', 'stealth']],
+                ['Silicon Power UD90 2TB M.2 PCIe 4.0 NVMe', 104, 6, '5000 MB/s Read, 2TB Gen4', ['gaming', 'office', 'stealth']],
+                ['WD Blue SN580 2TB M.2 PCIe 4.0 NVMe', 119, 6, '4150 MB/s Read, 2TB Daily', ['office', 'gaming', 'stealth']],
+                ['WD_BLACK SN770 2TB M.2 PCIe 4.0 NVMe', 129, 7, '5150 MB/s Read, 2TB Game Library', ['gaming', 'stealth']],
+                ['Lexar NM790 2TB M.2 PCIe 4.0 NVMe', 129, 7, '7400 MB/s Read, 2TB Fast Gen4', ['gaming', 'workstation', 'stealth']],
+                ['Samsung 990 EVO 2TB M.2 PCIe 4.0/5.0', 139, 7, '5000 MB/s Read, 2TB Hybrid', ['gaming', 'office', 'stealth']],
+                ['Samsung 990 EVO Plus 2TB M.2 PCIe 4.0', 149, 7, '7250 MB/s Read, 2TB Fast', ['gaming', 'workstation', 'stealth']],
+                // Flagship
+                ['Samsung 980 PRO 2TB M.2 PCIe 4.0 NVMe', 159, 8, '7000 MB/s Read, 2TB DRAM', ['gaming', 'workstation', 'stealth']],
+                ['Samsung 990 PRO 2TB M.2 PCIe 4.0 NVMe', 169, 9, '7450 MB/s Read, 2TB Flagship Gen4', ['gaming', 'workstation', 'stealth']],
+                ['Samsung 990 PRO 2TB with Heatsink', 184, 9, '7450 MB/s Read, RGB Heatsink', ['gaming', 'rgb']],
+                ['WD_BLACK SN850X 2TB M.2 PCIe 4.0 NVMe', 154, 9, '7300 MB/s Read, 2TB DRAM', ['gaming', 'workstation', 'stealth']],
+                ['WD_BLACK SN850X 2TB with Heatsink', 169, 9, '7300 MB/s Read, RGB Heatsink', ['gaming', 'rgb']],
+                ['SK hynix Platinum P41 2TB PCIe 4.0 NVMe', 154, 8, '7000 MB/s Read, 2TB Top Tier', ['gaming', 'workstation', 'stealth']],
+                ['Solidigm P44 Pro 2TB M.2 PCIe 4.0 NVMe', 159, 8, '7000 MB/s Read, 2TB Pro', ['workstation', 'gaming', 'stealth']],
+                ['Crucial T500 2TB M.2 PCIe 4.0 NVMe', 149, 8, '7400 MB/s Read, 2TB Micron TLC', ['gaming', 'workstation', 'stealth']],
+                ['Crucial T500 2TB with Heatsink', 159, 8, '7400 MB/s Read, 2TB Heatsink', ['gaming', 'stealth']],
+                ['Kingston KC3000 2TB M.2 PCIe 4.0 NVMe', 154, 8, '7000 MB/s Read, 2TB DRAM', ['workstation', 'gaming', 'stealth']],
+                ['Kingston Fury Renegade 2TB PCIe 4.0 NVMe', 164, 9, '7300 MB/s Read, 2TB Gaming', ['gaming', 'stealth']],
+                ['Corsair MP600 PRO LPX 2TB White', 169, 8, '7100 MB/s Read, White Heatsink', ['gaming', 'white']],
+                ['Sabrent Rocket 4 Plus 2TB PCIe 4.0 NVMe', 179, 8, '7100 MB/s Read, 2TB Creator', ['workstation', 'stealth']],
+                ['Crucial T700 1TB M.2 PCIe 5.0 NVMe', 159, 11, '11700 MB/s Read, Gen5 Speed', ['workstation', 'gaming', 'stealth']],
+                ['Crucial T700 2TB M.2 PCIe 5.0 NVMe', 249, 12, '12400 MB/s Read, Gen5 x4', ['workstation', 'gaming', 'stealth']],
+                ['Crucial T700 2TB with Heatsink', 269, 12, '12400 MB/s Read, Massive Sink', ['workstation', 'gaming', 'stealth']],
+                ['Crucial T705 1TB M.2 PCIe 5.0 NVMe', 179, 12, '13600 MB/s Read, Ultra Gen5', ['workstation', 'gaming', 'stealth']],
+                ['Crucial T705 2TB M.2 PCIe 5.0 NVMe', 289, 13, '14500 MB/s Read, Fastest Gen5', ['workstation', 'gaming', 'stealth']],
+                ['Crucial T705 2TB Limited Edition White', 309, 13, '14500 MB/s Read, White Gen5 Sink', ['gaming', 'white']],
+                ['Corsair MP700 PRO 2TB M.2 PCIe 5.0 NVMe', 279, 12, '12400 MB/s Read, Active Fan Sink', ['workstation', 'gaming', 'stealth']],
+                ['Corsair MP700 PRO SE 2TB PCIe 5.0 NVMe', 319, 13, '14000 MB/s Read, Phison E26', ['workstation', 'gaming', 'stealth']],
+                ['Gigabyte AORUS Gen5 12000 2TB NVMe', 269, 12, '12400 MB/s Read, Copper Sink', ['gaming', 'workstation', 'stealth']],
+                ['MSI Spatium M570 PRO Frozr 2TB Gen5', 279, 12, '12400 MB/s Read, Tower Heatsink', ['gaming', 'workstation', 'stealth']],
+                ['TeamGroup T-Force Z540 2TB PCIe 5.0', 259, 12, '12400 MB/s Read, Graphene Gen5', ['gaming', 'workstation', 'stealth']],
+                ['Sabrent Rocket 5 2TB M.2 PCIe 5.0 NVMe', 329, 13, '14000 MB/s Read, 2TB Gen5', ['workstation', 'stealth']],
+                ['Samsung 870 EVO 2TB 2.5" SATA III SSD', 159, 4, '560 MB/s Read, 1200 TBW', ['workstation', 'office', 'stealth']],
+                ['Samsung 870 EVO 4TB 2.5" SATA III SSD', 299, 4, '560 MB/s Read, 2400 TBW', ['workstation', 'office', 'stealth']],
+                ['Crucial P3 Plus 4TB M.2 PCIe 4.0 NVMe', 229, 8, '4800 MB/s Read, 4TB Game Vault', ['gaming', 'workstation', 'stealth']],
+                ['TeamGroup MP44 4TB M.2 PCIe 4.0 NVMe', 239, 9, '7400 MB/s Read, 4TB Fast TLC', ['gaming', 'workstation', 'stealth']],
+                ['Lexar NM790 4TB M.2 PCIe 4.0 NVMe', 249, 8, '7400 MB/s Read, 4TB High Speed', ['gaming', 'workstation', 'stealth']],
+                ['WD_BLACK SN850X 4TB M.2 PCIe 4.0 NVMe', 289, 10, '7300 MB/s Read, 4TB DRAM', ['gaming', 'workstation', 'stealth']],
+                ['Samsung 990 PRO 4TB M.2 PCIe 4.0 NVMe', 309, 10, '7450 MB/s Read, 4TB Flagship', ['gaming', 'workstation', 'stealth']],
+                ['Samsung 990 PRO 4TB with Heatsink', 329, 10, '7450 MB/s Read, 4TB RGB Sink', ['gaming', 'rgb']],
+                ['Kingston Fury Renegade 4TB PCIe 4.0', 299, 10, '7300 MB/s Read, 4TB Gaming', ['gaming', 'workstation', 'stealth']],
+                ['Sabrent Rocket 4 Plus 4TB PCIe 4.0', 349, 10, '7100 MB/s Read, 4TB Creator', ['workstation', 'stealth']],
+                ['Crucial T700 4TB M.2 PCIe 5.0 NVMe', 479, 14, '12400 MB/s Read, 4TB Gen5', ['workstation', 'gaming', 'stealth']],
+                ['Crucial T705 4TB M.2 PCIe 5.0 NVMe', 529, 15, '14100 MB/s Read, 4TB Ultra Gen5', ['workstation', 'gaming', 'stealth']],
+                ['Corsair MP700 PRO SE 4TB PCIe 5.0', 569, 15, '14000 MB/s Read, 4TB Gen5', ['workstation', 'stealth']],
+                ['WD_BLACK SN850X 8TB M.2 PCIe 4.0 NVMe', 699, 12, '7200 MB/s Read, 8TB Massive NVMe', ['workstation', 'gaming', 'stealth']],
+                ['Sabrent Rocket 4 Plus 8TB PCIe 4.0 NVMe', 899, 12, '7100 MB/s Read, 8TB Single M.2', ['workstation', 'stealth']],
+                ['Samsung 870 QVO 8TB 2.5" SATA III SSD', 549, 4, '560 MB/s Read, 8TB Archive', ['workstation', 'office', 'stealth']]
+            ];
+            ssdDrives.forEach((m, i) => db.storage.push({ id: `ssd-${i+1}`, name: m[0], price: m[1], wattage: m[2], specs: m[3], tags: m[4], img: imgs.ssd[0] }));
+
+            // 6. PSUs (103 real models from 450W Bronze to 1600W Titanium ATX 3.0/3.1)
+            const psuModels = [
+                // Budget
+                ['Thermaltake Smart 430W 80+ White', 36, 430, 'Non-Modular, 120mm Quiet Fan', ['office', 'stealth']],
+                ['Thermaltake Smart 500W 80+ White', 39, 500, 'Non-Modular, Entry Build', ['office', 'gaming', 'stealth']],
+                ['Thermaltake Smart 600W 80+ White', 44, 600, 'Non-Modular, Dual PCIe 8-Pin', ['office', 'gaming', 'stealth']],
+                ['EVGA 500 W1 500W 80+ White', 45, 500, 'Non-Modular, 3-Year Warranty', ['office', 'stealth']],
+                ['EVGA 500 BR 500W 80+ Bronze', 49, 500, 'Non-Modular, DC-to-DC', ['office', 'gaming', 'stealth']],
+                ['EVGA 600 BR 600W 80+ Bronze', 55, 600, 'Non-Modular, Sleeved Cables', ['gaming', 'office', 'stealth']],
+                ['MSI MAG A550BN 550W 80+ Bronze', 49, 550, 'Non-Modular, DC-to-DC Circuit', ['gaming', 'office', 'stealth']],
+                ['MSI MAG A650BN 650W 80+ Bronze', 59, 650, 'Non-Modular, 120mm Low Noise', ['gaming', 'office', 'stealth']],
+                ['Corsair CX550 550W 80+ Bronze', 54, 550, 'Non-Modular, Matte Black', ['office', 'gaming', 'stealth']],
+                ['Corsair CX650 650W 80+ Bronze', 64, 650, 'Non-Modular, Compact 125mm', ['gaming', 'office', 'stealth']],
+                ['Corsair CX750 750W 80+ Bronze', 74, 750, 'Non-Modular, 120mm Rifle Bearing', ['gaming', 'stealth']],
+                ['Corsair CX650M 650W 80+ Bronze Semi-Modular', 69, 650, 'Semi-Modular, Black Cables', ['gaming', 'office', 'stealth']],
+                ['Corsair CX750M 750W 80+ Bronze Semi-Modular', 79, 750, 'Semi-Modular, Quiet Operation', ['gaming', 'stealth']],
+                ['Thermaltake Smart BM3 650W 80+ Bronze ATX 3.0', 64, 650, 'Semi-Modular, Native 12VHPWR', ['gaming', 'stealth']],
+                ['Thermaltake Smart BM3 750W 80+ Bronze ATX 3.0', 74, 750, 'Semi-Modular, Native 12VHPWR', ['gaming', 'stealth']],
+                ['Thermaltake Smart BM3 850W 80+ Bronze ATX 3.0', 84, 850, 'Semi-Modular, PCIe 5.0 Ready', ['gaming', 'stealth']],
+                ['Cooler Master MWE Bronze 650W V2', 62, 650, 'Non-Modular, HDB 120mm Fan', ['gaming', 'office', 'stealth']],
+                ['Cooler Master MWE Bronze 750W V2', 72, 750, 'Non-Modular, Flat Black Cables', ['gaming', 'stealth']],
+                ['be quiet! System Power 10 550W 80+ Bronze', 59, 550, 'Non-Modular, Ultra-Quiet Fan', ['office', 'stealth']],
+                ['be quiet! System Power 10 650W 80+ Bronze', 69, 650, 'Non-Modular, German Engineering', ['gaming', 'office', 'stealth']],
+                ['Apevia Prestige 600W 80+ Gold', 52, 600, 'Non-Modular, Budget Gold', ['gaming', 'office', 'stealth']],
+                ['Apevia Prestige 800W 80+ Gold', 67, 800, 'Non-Modular, Dual 8-Pin CPU', ['gaming', 'stealth']],
+                ['ARESGAME AGV 650W 80+ Bronze Semi-Modular', 49, 650, 'Semi-Modular, Flat Cables', ['office', 'gaming', 'stealth']],
+                ['Segotep 650W 80+ Gold Fully Modular', 69, 650, 'Fully Modular, Budget Gold', ['gaming', 'stealth']],
+                ['Segotep 750W 80+ Gold Fully Modular', 79, 750, 'Fully Modular, 120mm FDB Fan', ['gaming', 'stealth']],
+                // Midrange
+                ['Corsair RM650 650W 80+ Gold Fully Modular', 89, 650, 'Fully Modular, Zero RPM Fan', ['gaming', 'office', 'stealth']],
+                ['Corsair RM750e 750W 80+ Gold ATX 3.0', 99, 750, 'Fully Modular, PCIe 5.0 12VHPWR', ['gaming', 'stealth']],
+                ['Corsair RM850e 850W 80+ Gold ATX 3.0', 114, 850, 'Fully Modular, PCIe 5.0 12VHPWR', ['gaming', 'workstation', 'stealth']],
+                ['Corsair RM750x 750W 80+ Gold Fully Modular', 119, 750, 'Fully Modular, Japanese Caps', ['gaming', 'stealth']],
+                ['Corsair RM850x 850W 80+ Gold Fully Modular', 134, 850, 'Fully Modular, 135mm MagLev Fan', ['gaming', 'workstation', 'stealth']],
+                ['Corsair RM850x Shift 850W 80+ Gold ATX 3.0', 144, 850, 'Side-Interface Modular, PCIe 5.0', ['gaming', 'stealth']],
+                ['Corsair RM850x Shift White 850W 80+ Gold', 154, 850, 'White Side-Modular, White Cables', ['gaming', 'white']],
+                ['Corsair RM750 750W 80+ Gold White', 119, 750, 'Fully Modular, White Housing/Cables', ['gaming', 'white']],
+                ['Corsair RM850 850W 80+ Gold White', 134, 850, 'Fully Modular, White Edition', ['gaming', 'white']],
+                ['MSI MAG A750GL PCIE5 750W 80+ Gold', 89, 750, 'Fully Modular, ATX 3.0, Yellow Tip', ['gaming', 'stealth']],
+                ['MSI MAG A850GL PCIE5 850W 80+ Gold', 105, 850, 'Fully Modular, ATX 3.0/3.1 Ready', ['gaming', 'workstation', 'stealth']],
+                ['MSI MAG A850GL PCIE5 White 850W 80+ Gold', 115, 850, 'Fully Modular, White ATX 3.0', ['gaming', 'white']],
+                ['MSI MPG A850G PCIE5 850W 80+ Gold', 129, 850, 'Fully Modular, 100% Japanese Caps', ['gaming', 'workstation', 'stealth']],
+                ['Seasonic Focus GX-750 750W 80+ Gold', 109, 750, 'Fully Modular, Compact 140mm', ['gaming', 'stealth']],
+                ['Seasonic Focus GX-850 850W 80+ Gold', 129, 850, 'Fully Modular, Hybrid Silent Fan', ['gaming', 'workstation', 'stealth']],
+                ['Seasonic Focus GX-850 ATX 3.0 850W Gold', 139, 850, 'Fully Modular, Native 12VHPWR', ['gaming', 'workstation', 'stealth']],
+                ['Seasonic Focus GX-850 White ATX 3.0 850W', 149, 850, 'Fully Modular, White ATX 3.0', ['gaming', 'white']],
+                ['be quiet! Pure Power 12 M 750W 80+ Gold', 99, 750, 'Fully Modular, ATX 3.0, Silent', ['gaming', 'stealth']],
+                ['be quiet! Pure Power 12 M 850W 80+ Gold', 114, 850, 'Fully Modular, ATX 3.0, Dual Rail', ['gaming', 'workstation', 'stealth']],
+                ['EVGA SuperNOVA 750 GT 750W 80+ Gold', 109, 750, 'Fully Modular, Auto Eco Mode', ['gaming', 'stealth']],
+                ['EVGA SuperNOVA 850 GT 850W 80+ Gold', 124, 850, 'Fully Modular, FDB Fan', ['gaming', 'stealth']],
+                ['Thermaltake Toughpower GF3 750W 80+ Gold', 95, 750, 'Fully Modular, ATX 3.0 PCIe 5.0', ['gaming', 'stealth']],
+                ['Thermaltake Toughpower GF3 850W 80+ Gold', 109, 850, 'Fully Modular, ATX 3.0 PCIe 5.0', ['gaming', 'workstation', 'stealth']],
+                ['Thermaltake Toughpower GF A3 Snow 850W', 119, 850, 'Fully Modular, White ATX 3.0', ['gaming', 'white']],
+                ['Cooler Master MWE Gold 750 V2 Full Modular', 94, 750, 'Fully Modular, 2x EPS Connectors', ['gaming', 'stealth']],
+                ['Cooler Master MWE Gold 850 V2 Full Modular', 104, 850, 'Fully Modular, Quiet 120mm HDB', ['gaming', 'stealth']],
+                ['Cooler Master GX III Gold 850W ATX 3.0', 124, 850, 'Fully Modular, 90° 12VHPWR Cable', ['gaming', 'stealth']],
+                ['ASUS TUF Gaming 750W Gold ATX 3.0', 119, 750, 'Fully Modular, PCB Coating', ['gaming', 'stealth']],
+                ['ASUS TUF Gaming 850W Gold ATX 3.0', 139, 850, 'Fully Modular, Military-Grade', ['gaming', 'workstation', 'stealth']],
+                ['ASUS Prime 850W Gold ATX 3.0 White/Black', 129, 850, 'Fully Modular, Dual Ball Fan', ['gaming', 'white', 'stealth']],
+                ['NZXT C750 750W 80+ Gold Fully Modular', 109, 750, 'Fully Modular, Zero Fan Mode', ['gaming', 'stealth']],
+                ['NZXT C850 850W 80+ Gold ATX 3.1', 134, 850, 'Fully Modular, 12V-2x6 Connector', ['gaming', 'workstation', 'stealth']],
+                ['XPG Core Reactor II 750W 80+ Gold ATX 3.0', 94, 750, 'Fully Modular, Cybernetics Gold', ['gaming', 'stealth']],
+                ['XPG Core Reactor II 850W 80+ Gold ATX 3.0', 109, 850, 'Fully Modular, Japanese Caps', ['gaming', 'workstation', 'stealth']],
+                ['Super Flower Leadex III Gold 850W', 119, 850, 'Fully Modular, Eco Thermal Control', ['gaming', 'stealth']],
+                ['Montech TITAN GOLD 850W ATX 3.0', 114, 850, 'Fully Modular, PCIe 5.0 Ready', ['gaming', 'stealth']],
+                ['Corsair SF750 750W 80+ Platinum SFX', 169, 750, 'SFX Form Factor, Braided Cables', ['gaming', 'workstation', 'stealth']],
+                ['Corsair SF850 850W 80+ Platinum SFX ATX 3.1', 199, 850, 'SFX Compact, Type-5 Micro-Fit', ['gaming', 'workstation', 'stealth']],
+                ['Lian Li SP750 750W 80+ Gold SFX', 119, 750, 'SFX Small Form Factor, Black', ['gaming', 'stealth']],
+                ['Lian Li SP850 850W 80+ Gold SFX White', 139, 850, 'SFX Small Form Factor, White', ['gaming', 'white']],
+                // Flagship
+                ['Corsair RM1000e 1000W 80+ Gold ATX 3.0', 159, 1000, 'Fully Modular, PCIe 5.0 12VHPWR', ['gaming', 'workstation', 'stealth']],
+                ['Corsair RM1000x 1000W 80+ Gold Fully Modular', 179, 1000, 'Fully Modular, 135mm MagLev', ['gaming', 'workstation', 'stealth']],
+                ['Corsair RM1000x Shift 1000W 80+ Gold ATX 3.0', 189, 1000, 'Side-Interface Modular, PCIe 5.0', ['gaming', 'workstation', 'stealth']],
+                ['Corsair RM1000x Shift White 1000W 80+ Gold', 199, 1000, 'White Side-Modular, White Cables', ['gaming', 'white']],
+                ['Corsair RM1200x Shift 1200W 80+ Gold ATX 3.0', 219, 1200, 'Side-Interface Modular, 1200W', ['gaming', 'workstation', 'stealth']],
+                ['Corsair HX1000i 1000W 80+ Platinum ATX 3.0', 239, 1000, 'Digital iCUE Monitoring, Platinum', ['gaming', 'workstation', 'stealth']],
+                ['Corsair HX1200i 1200W 80+ Platinum ATX 3.0', 279, 1200, 'Digital iCUE, Fluid Dynamic Fan', ['gaming', 'workstation', 'stealth']],
+                ['Corsair HX1500i 1500W 80+ Platinum ATX 3.0', 349, 1500, 'Digital Platinum, Dual GPU Ready', ['workstation', 'gaming', 'stealth']],
+                ['Corsair AX1600i 1600W 80+ Titanium Digital', 599, 1600, 'GaN Transistors, Titanium Flagship', ['workstation', 'gaming', 'stealth']],
+                ['Seasonic Vertex GX-1000 1000W 80+ Gold ATX 3.0', 189, 1000, 'Fully Modular, 12-Year Warranty', ['gaming', 'workstation', 'stealth']],
+                ['Seasonic Vertex GX-1200 1200W 80+ Gold ATX 3.0', 219, 1200, 'Fully Modular, Native 12VHPWR', ['gaming', 'workstation', 'stealth']],
+                ['Seasonic Vertex PX-1000 1000W 80+ Platinum', 229, 1000, 'Platinum Efficiency, ATX 3.0', ['gaming', 'workstation', 'stealth']],
+                ['Seasonic Vertex PX-1200 1200W 80+ Platinum', 259, 1200, 'Platinum Efficiency, 135mm FDB', ['gaming', 'workstation', 'stealth']],
+                ['Seasonic Prime TX-1000 1000W 80+ Titanium', 319, 1000, 'Titanium Flagship, Micro Tolerance', ['workstation', 'gaming', 'stealth']],
+                ['Seasonic Prime TX-1300 1300W 80+ Titanium ATX 3.0', 449, 1300, 'Titanium ATX 3.0, Dual 12VHPWR', ['workstation', 'gaming', 'stealth']],
+                ['Seasonic Prime TX-1600 1600W 80+ Titanium ATX 3.0', 549, 1600, 'Ultimate 1600W Titanium PSU', ['workstation', 'gaming', 'stealth']],
+                ['MSI MPG A1000G PCIE5 1000W 80+ Gold', 159, 1000, 'Fully Modular, ATX 3.0 PCIe 5.0', ['gaming', 'workstation', 'stealth']],
+                ['MSI MEG Ai1000P PCIE5 1000W 80+ Platinum', 239, 1000, 'Software Telemetry, ATX 3.0', ['gaming', 'workstation', 'stealth']],
+                ['MSI MEG Ai1300P PCIE5 1300W 80+ Platinum', 299, 1300, 'Smart Gaming PSU, 1300W', ['workstation', 'gaming', 'stealth']],
+                ['ASUS TUF Gaming 1000W Gold ATX 3.0', 169, 1000, 'Fully Modular, 10-Year Warranty', ['gaming', 'workstation', 'stealth']],
+                ['ASUS ROG Strix 1000W Gold Aura Edition', 209, 1000, 'Aluminum Body, Aura Sync RGB', ['gaming', 'rgb']],
+                ['ASUS ROG Strix 1000W Platinum ATX 3.1', 239, 1000, 'GaN MOSFET, GPU-First Voltage', ['gaming', 'workstation', 'stealth']],
+                ['ASUS ROG Thor 1000W Platinum II', 329, 1000, 'OLED Power Display, Aura RGB', ['gaming', 'rgb']],
+                ['ASUS ROG Thor 1200W Platinum II', 369, 1200, 'OLED Wattage Readout, Lambda A++', ['gaming', 'workstation', 'rgb']],
+                ['ASUS ROG Thor 1600W Titanium', 699, 1600, 'Digital GaN, OLED Screen, 1600W', ['workstation', 'gaming', 'rgb']],
+                ['ASUS ROG Loki 1000W Platinum SFX-L', 259, 1000, 'SFX-L Compact, ARGB 120mm Fan', ['gaming', 'rgb']],
+                ['ASUS ROG Loki 850W Platinum SFX-L White', 229, 850, 'White SFX-L, White Braided Cables', ['gaming', 'white', 'rgb']],
+                ['be quiet! Dark Power 13 1000W 80+ Titanium', 269, 1000, 'Frameless Silent Wings Fan, ATX 3.0', ['workstation', 'gaming', 'stealth']],
+                ['be quiet! Dark Power Pro 13 1300W Titanium', 389, 1300, 'Digital Overclocking Key, 1300W', ['workstation', 'gaming', 'stealth']],
+                ['be quiet! Dark Power Pro 13 1600W Titanium', 439, 1600, 'Flagship 1600W Titanium Silent', ['workstation', 'gaming', 'stealth']],
+                ['Thermaltake Toughpower GF3 1000W 80+ Gold', 149, 1000, 'Fully Modular, ATX 3.0 PCIe 5.0', ['gaming', 'workstation', 'stealth']],
+                ['Thermaltake Toughpower GF3 1200W 80+ Gold', 179, 1200, 'Fully Modular, ATX 3.0 PCIe 5.0', ['gaming', 'workstation', 'stealth']],
+                ['Thermaltake Toughpower GF3 1350W 80+ Gold', 209, 1350, 'Fully Modular, 140mm FDB Fan', ['workstation', 'gaming', 'stealth']],
+                ['Thermaltake Toughpower GF3 1650W 80+ Gold', 269, 1650, 'Dual 12VHPWR Connectors, 1650W', ['workstation', 'gaming', 'stealth']],
+                ['NZXT C1000 1000W 80+ Gold ATX 3.1', 169, 1000, 'Fully Modular, 135mm FDB Fan', ['gaming', 'workstation', 'stealth']],
+                ['NZXT C1200 1200W 80+ Gold ATX 3.1', 199, 1200, 'Fully Modular, 600W 12V-2x6', ['gaming', 'workstation', 'stealth']],
+                ['NZXT C1500 1500W 80+ Platinum ATX 3.1', 349, 1500, 'Digital Magnetic Levitation Fan', ['workstation', 'gaming', 'stealth']],
+                ['Super Flower Leadex VII XG 1000W Gold ATX 3.0', 169, 1000, 'Cybenetics Platinum Certified', ['gaming', 'workstation', 'stealth']],
+                ['Super Flower Leadex VII XG 1300W Gold ATX 3.0', 219, 1300, '140mm FDB Fan, Universal Super Conn.', ['workstation', 'gaming', 'stealth']]
+            ];
+            psuModels.forEach((m, i) => db.psu.push({ id: `psu-${i+1}`, name: m[0], price: m[1], capacity: m[2], specs: m[3], tags: m[4], img: imgs.psu[0] }));
+
+            // 7. PC Cases / Cabinets (103 real models across ATX, Micro-ATX, Budget, White, Stealth, RGB)
+            const caseModels = [
+                // Budget
+                ['Rosewill FBM-X2 Micro-ATX Mini Tower', 42, 'Micro-ATX', 'Compact Steel, Brushed Front', ['office', 'stealth']],
+                ['Cooler Master MasterBox Q300L Micro-ATX', 44, 'Micro-ATX', 'Magnetic Dust Filters, Acrylic', ['office', 'gaming', 'stealth']],
+                ['Cooler Master MasterBox Q300L V2 Micro-ATX', 49, 'Micro-ATX', 'USB 3.2 Gen 2x2 Type-C', ['office', 'gaming', 'stealth']],
+                ['Thermaltake Versa H17 Micro-ATX', 45, 'Micro-ATX', 'Clean Minimalist Black', ['office', 'stealth']],
+                ['Thermaltake Versa H18 Tempered Glass Micro-ATX', 52, 'Micro-ATX', 'Mesh Front, TG Side Panel', ['office', 'gaming', 'stealth']],
+                ['DeepCool MATREXX 40 Micro-ATX', 48, 'Micro-ATX', 'Mesh Front, Tempered Glass', ['office', 'gaming', 'stealth']],
+                ['DeepCool MACUBE 110 Micro-ATX Black', 54, 'Micro-ATX', 'Magnetic Glass, Minimalist', ['office', 'stealth']],
+                ['DeepCool MACUBE 110 Micro-ATX White', 56, 'Micro-ATX', 'Minimalist White Steel', ['office', 'white']],
+                ['Zalman S2 ATX Mid Tower', 49, 'ATX', 'Full Mesh Front, 3x 120mm Fans', ['office', 'gaming', 'stealth']],
+                ['Zalman T6 ATX Mid Tower', 44, 'ATX', 'Patterned Mesh, Office/Budget', ['office', 'stealth']],
+                ['Montech X3 Mesh ATX Mid Tower Black', 59, 'ATX', '6 Pre-installed Fixed RGB Fans', ['gaming', 'rgb']],
+                ['Montech X3 Mesh ATX Mid Tower White', 64, 'ATX', 'White Chassis, 6 Included Fans', ['gaming', 'white', 'rgb']],
+                ['Montech AIR 100 LITE Micro-ATX Black', 52, 'Micro-ATX', 'Super Fine Mesh, Hinged TG', ['office', 'gaming', 'stealth']],
+                ['Montech AIR 100 ARGB Micro-ATX Black', 64, 'Micro-ATX', '4x ARGB Fans, Hinged Glass', ['gaming', 'rgb']],
+                ['Montech AIR 100 ARGB Micro-ATX White', 69, 'Micro-ATX', 'White Mesh, 4x ARGB Fans', ['gaming', 'white', 'rgb']],
+                ['Antec NX200M Micro-ATX', 54, 'Micro-ATX', 'Mesh Front Panel, Compact', ['office', 'gaming', 'stealth']],
+                ['Antec NX410 ATX Mid Tower Black', 64, 'ATX', '3x ARGB Fans Included', ['gaming', 'rgb']],
+                ['Antec NX410 ATX Mid Tower White', 69, 'ATX', 'White Mesh, 3x ARGB Fans', ['gaming', 'white', 'rgb']],
+                ['BitFenix Nova Mesh SE TG Micro-ATX Black', 59, 'Micro-ATX', '4x ARGB Fans, High Airflow', ['gaming', 'rgb']],
+                ['BitFenix Nova Mesh SE TG Micro-ATX White', 64, 'Micro-ATX', 'White Mesh, 4x ARGB Fans', ['gaming', 'white', 'rgb']],
+                ['MSI MAG Forge 100R ATX Mid Tower', 64, 'ATX', 'Dual ARGB Fans, Tempered Glass', ['gaming', 'rgb']],
+                ['MSI MAG Forge M100R Micro-ATX', 59, 'Micro-ATX', '4x ARGB Fans, Compact Mesh', ['gaming', 'rgb']],
+                ['Cougar MX330-G Air ATX Mid Tower', 56, 'ATX', 'Full Mesh Front, TG Side', ['office', 'gaming', 'stealth']],
+                ['GAMDIAS TALOS E3 Mesh ATX Black', 59, 'ATX', '3x ARGB Fans, TG Side Panel', ['gaming', 'rgb']],
+                ['GAMDIAS TALOS E3 Mesh ATX White', 64, 'ATX', 'White Chassis, 3x ARGB Fans', ['gaming', 'white', 'rgb']],
+                ['ASUS Prime AP201 Micro-ATX Mesh Black', 74, 'Micro-ATX', 'Quasi-Filter Mesh, 33L Volume', ['office', 'workstation', 'stealth']],
+                ['ASUS Prime AP201 Micro-ATX Mesh White', 79, 'Micro-ATX', 'All-White 360mm AIO Support', ['office', 'workstation', 'white']],
+                // Midrange
+                ['NZXT H5 Flow (2024) ATX Mid Tower Black', 94, 'ATX', 'Perforated Front/Bottom, 2 Fans', ['gaming', 'office', 'stealth']],
+                ['NZXT H5 Flow (2024) ATX Mid Tower White', 94, 'ATX', 'Clean Matte White, Tempered Glass', ['gaming', 'office', 'white']],
+                ['NZXT H5 Flow RGB (2024) Black', 119, 'ATX', 'F360 RGB Core Fan Included', ['gaming', 'rgb']],
+                ['NZXT H5 Flow RGB (2024) White', 119, 'ATX', 'White Chassis, RGB Fan Core', ['gaming', 'white', 'rgb']],
+                ['NZXT H6 Flow ATX Dual-Chamber Black', 109, 'ATX', 'Panoramic Wraparound Glass, Angled Fans', ['gaming', 'stealth']],
+                ['NZXT H6 Flow ATX Dual-Chamber White', 109, 'ATX', 'White Panoramic Dual-Chamber', ['gaming', 'white']],
+                ['NZXT H6 Flow RGB ATX Black', 134, 'ATX', '3x 120mm RGB Core Fans Included', ['gaming', 'rgb']],
+                ['NZXT H6 Flow RGB ATX White', 134, 'ATX', 'White Panoramic + 3x RGB Fans', ['gaming', 'white', 'rgb']],
+                ['Corsair 4000D Airflow ATX Mid Tower Black', 94, 'ATX', 'High-Airflow Steel Front, RapidRoute', ['gaming', 'workstation', 'stealth']],
+                ['Corsair 4000D Airflow ATX Mid Tower White', 94, 'ATX', 'White Steel Mesh, Gray Accents', ['gaming', 'workstation', 'white']],
+                ['Corsair iCUE 4000D RGB Airflow Black', 129, 'ATX', '3x AF120 RGB Elite + Lighting Node', ['gaming', 'rgb']],
+                ['Corsair iCUE 4000D RGB Airflow White', 134, 'ATX', 'White Chassis + 3x White RGB Fans', ['gaming', 'white', 'rgb']],
+                ['Corsair 3000D Airflow ATX Mid Tower Black', 79, 'ATX', '2x SP120 Elite Fans, 4-Slot GPU', ['gaming', 'office', 'stealth']],
+                ['Corsair 3000D RGB Airflow White', 99, 'ATX', 'White Mesh + 3x AR120 RGB Fans', ['gaming', 'white', 'rgb']],
+                ['Corsair 3500X ARGB ATX Mid Tower Black', 109, 'ATX', 'Wraparound Glass, Reverse Connector', ['gaming', 'rgb']],
+                ['Corsair 3500X ARGB ATX Mid Tower White', 114, 'ATX', 'All-White Panoramic + 3x RS120 ARGB', ['gaming', 'white', 'rgb']],
+                ['Lian Li Lancool 216 ATX Mid Tower Black', 99, 'ATX', '2x 160mm Front Fans + 140mm Rear', ['gaming', 'workstation', 'stealth']],
+                ['Lian Li Lancool 216 RGB ATX Black', 109, 'ATX', '2x 160mm ARGB Front Fans, Mesh', ['gaming', 'rgb']],
+                ['Lian Li Lancool 216 RGB ATX White', 114, 'ATX', 'White Chassis, 2x 160mm ARGB Fans', ['gaming', 'white', 'rgb']],
+                ['Lian Li Lancool 207 ATX Mid Tower Black', 79, 'ATX', '4x Pre-installed Fans, Front-Mounted PSU', ['gaming', 'stealth']],
+                ['Lian Li Lancool 207 ATX Mid Tower White', 84, 'ATX', 'White High-Airflow Compact ATX', ['gaming', 'white']],
+                ['Lian Li O11 Air Mini ATX Black', 109, 'ATX', 'Full Mesh Dual-Chamber, ATX PSU', ['gaming', 'workstation', 'stealth']],
+                ['Lian Li O11 Air Mini ATX White', 114, 'ATX', 'White Mesh Dual-Chamber', ['gaming', 'white']],
+                ['Lian Li A3-mATX Micro-ATX Wood Black', 79, 'Micro-ATX', 'Walnut Wood Front, 26.3L Compact', ['office', 'workstation', 'stealth']],
+                ['Lian Li A3-mATX Micro-ATX White', 69, 'Micro-ATX', 'Minimalist White Steel Mesh', ['office', 'workstation', 'white']],
+                ['Fractal Design Pop Air ATX Black Solid', 79, 'ATX', 'Stealth Non-Windowed, Hidden 5.25" Bay', ['office', 'workstation', 'stealth']],
+                ['Fractal Design Pop Air RGB ATX Black', 89, 'ATX', '3x Aspect 12 RGB Fans, Honeycomb Mesh', ['gaming', 'rgb']],
+                ['Fractal Design Pop Air RGB ATX White', 89, 'ATX', 'White Mesh + 3x Aspect 12 RGB', ['gaming', 'white', 'rgb']],
+                ['Fractal Design Pop Mini Air RGB Micro-ATX', 89, 'Micro-ATX', 'Compact Micro-ATX Mesh + 3x RGB', ['gaming', 'rgb']],
+                ['Fractal Design North ATX Charcoal Black', 139, 'ATX', 'Genuine Walnut Wood Slats, Mesh/TG', ['workstation', 'office', 'stealth']],
+                ['Fractal Design North ATX Chalk White', 139, 'ATX', 'Genuine Oak Wood Slats, Brass Accents', ['workstation', 'office', 'white']],
+                ['Fractal Design Meshify 2 Compact Black', 124, 'ATX', 'Angular Mesh, Nylon Filters', ['gaming', 'workstation', 'stealth']],
+                ['Fractal Design Meshify 2 Compact White', 129, 'ATX', 'White Angular Mesh, Clear TG', ['gaming', 'white']],
+                ['Phanteks XT Pro Ultra ATX Mid Tower Black', 79, 'ATX', '4x 140mm D-RGB Fans, Back-Connect', ['gaming', 'rgb']],
+                ['Phanteks XT Pro Ultra ATX Mid Tower White', 84, 'ATX', 'White Mesh + 4x 140mm White D-RGB', ['gaming', 'white', 'rgb']],
+                ['Phanteks NV5 ATX Mid Tower Black', 99, 'ATX', 'Seamless Pillarless Glass, 8-Fan Cap.', ['gaming', 'stealth']],
+                ['Phanteks NV5 ATX Mid Tower White', 109, 'ATX', 'Pillarless White Showcase Chassis', ['gaming', 'white']],
+                ['Phanteks Eclipse G360A ATX Black', 89, 'ATX', 'Ultra-Fine Performance Mesh + 3x D-RGB', ['gaming', 'rgb']],
+                ['Phanteks Eclipse G360A ATX White', 94, 'ATX', 'White Mesh + 3x D-RGB Fans', ['gaming', 'white', 'rgb']],
+                ['Montech KING 95 PRO ATX Black', 149, 'ATX', 'Curved Tempered Glass + 6x ARGB Fans', ['gaming', 'rgb']],
+                ['Montech KING 95 PRO ATX White', 154, 'ATX', 'White Curved Glass + 6x White ARGB', ['gaming', 'white', 'rgb']],
+                ['Montech AIR 903 MAX ATX Black', 74, 'ATX', '4x 140mm PWM Fans (3x ARGB), E-ATX', ['gaming', 'rgb']],
+                ['Montech AIR 903 MAX ATX White', 79, 'ATX', 'White Mesh + 4x 140mm Fans', ['gaming', 'white', 'rgb']],
+                ['be quiet! Pure Base 500DX ATX Black', 99, 'ATX', '3x Pure Wings 2 140mm, ARGB Front', ['gaming', 'workstation', 'stealth']],
+                ['be quiet! Pure Base 500DX ATX White', 104, 'ATX', 'White Acoustic/Airflow Hybrid', ['gaming', 'white']],
+                ['be quiet! Shadow Base 800 FX ATX Black', 169, 'ATX', '4x Light Wings 140mm PWM ARGB', ['gaming', 'rgb']],
+                ['Thermaltake Ceres 300 TG ARGB Black', 99, 'ATX', '2x 140mm CT140 ARGB Fans, Perforated', ['gaming', 'rgb']],
+                ['Thermaltake View 270 TG ARGB Snow White', 84, 'ATX', 'Pillarless Front/Side Glass, White', ['gaming', 'white', 'rgb']],
+                ['Jonsbo D31 Mesh Micro-ATX Black', 74, 'Micro-ATX', 'Compact 360mm AIO Support, Mesh', ['office', 'gaming', 'stealth']],
+                ['Jonsbo D31 Mesh Screen Micro-ATX White', 119, 'Micro-ATX', 'Built-in 8" IPS Sensor Panel LCD', ['gaming', 'white', 'rgb']],
+                // Flagship
+                ['Lian Li O11 Dynamic EVO RGB ATX Black', 159, 'ATX', 'Dual L-Shaped RGB Strips, Reversible', ['gaming', 'rgb', 'stealth']],
+                ['Lian Li O11 Dynamic EVO RGB ATX White', 169, 'ATX', 'Pure White Dual-Chamber Showcase', ['gaming', 'white', 'rgb']],
+                ['Lian Li O11 Dynamic EVO XL ATX Black', 239, 'ATX', 'Triple 420mm Radiator Support, E-ATX', ['workstation', 'gaming', 'stealth']],
+                ['Lian Li O11 Dynamic EVO XL ATX White', 249, 'ATX', 'Massive White Dual-Chamber Flagship', ['workstation', 'gaming', 'white']],
+                ['Lian Li O11 Vision ATX Black', 139, 'ATX', '3-Sided Borderless Tempered Glass', ['gaming', 'stealth']],
+                ['Lian Li O11 Vision ATX White', 149, 'ATX', '3-Sided Frameless White Glass', ['gaming', 'white']],
+                ['Lian Li O11 Vision Chrome ATX', 159, 'ATX', 'Mirror-Finish Tinted Tempered Glass', ['gaming', 'stealth']],
+                ['NZXT H9 Flow ATX Dual-Chamber Black', 159, 'ATX', 'Uninterrupted Glass, 4x F120Q Fans', ['gaming', 'workstation', 'stealth']],
+                ['NZXT H9 Flow ATX Dual-Chamber White', 159, 'ATX', 'All-White Dual-Chamber Airflow', ['gaming', 'workstation', 'white']],
+                ['NZXT H9 Elite ATX Dual-Chamber Black', 239, 'ATX', 'Top Glass + 3x F120 RGB Duo Fans', ['gaming', 'rgb']],
+                ['NZXT H9 Elite ATX Dual-Chamber White', 239, 'ATX', 'White Top Glass + RGB Duo Fans', ['gaming', 'white', 'rgb']],
+                ['HYTE Y60 ATX Mid Tower Black', 179, 'ATX', '3-Piece Panoramic Corner Glass + Riser', ['gaming', 'stealth']],
+                ['HYTE Y60 ATX Mid Tower Snow White', 189, 'ATX', 'All-White Panoramic + PCIe 4.0 Riser', ['gaming', 'white']],
+                ['HYTE Y70 ATX Mid Tower Black', 219, 'ATX', '4-Slot Vertical GPU, Massive Dual-Ch.', ['gaming', 'workstation', 'stealth']],
+                ['HYTE Y70 ATX Mid Tower Snow White', 219, 'ATX', 'Pure White 4-Slot Vertical Showcase', ['gaming', 'white']],
+                ['HYTE Y70 Touch Infinite Black', 379, 'ATX', 'Integrated 14.9" 2.5K Capacitive Touch LCD', ['gaming', 'rgb']],
+                ['HYTE Y70 Touch Infinite Snow White', 379, 'ATX', 'White + 14.9" 682x2560 IPS Touchscreen', ['gaming', 'white', 'rgb']],
+                ['Corsair 5000D Airflow ATX Mid Tower Black', 154, 'ATX', '360mm Side + Top Radiator Support', ['gaming', 'workstation', 'stealth']],
+                ['Corsair 5000D Airflow ATX Mid Tower White', 154, 'ATX', 'White High-Airflow Mid-Tower', ['gaming', 'workstation', 'white']],
+                ['Corsair iCUE 5000T RGB ATX Black', 349, 'ATX', '208 Individually Addressable RGB LEDs', ['gaming', 'rgb']],
+                ['Corsair 6500X Dual-Chamber ATX Black', 179, 'ATX', 'Reverse-Connector Motherboard Ready', ['gaming', 'workstation', 'stealth']],
+                ['Corsair 6500X Dual-Chamber ATX White', 189, 'ATX', 'White Panoramic Dual-Chamber', ['gaming', 'white']],
+                ['Corsair 7000D Airflow Full-Tower Black', 249, 'ATX', 'Triple 360mm Radiator Full-Tower', ['workstation', 'gaming', 'stealth']],
+                ['Fractal Design North XL Charcoal Black', 179, 'ATX', 'Full-Size Walnut Front, 420mm Rad', ['workstation', 'gaming', 'stealth']],
+                ['Fractal Design North XL Chalk White', 179, 'ATX', 'Full-Size Oak Front, White Chassis', ['workstation', 'gaming', 'white']],
+                ['Fractal Design Torrent ATX Black TG', 189, 'ATX', '2x 180mm Dynamic GP-18 Front Fans', ['gaming', 'workstation', 'stealth']],
+                ['Fractal Design Torrent RGB White TG', 229, 'ATX', 'White + 2x 180mm Prisma ARGB Fans', ['gaming', 'white', 'rgb']],
+                ['ASUS ROG Hyperion GR701 E-ATX Black', 449, 'ATX', 'X-Frame Die-Cast Aluminum, Dual 420mm', ['gaming', 'workstation', 'rgb']],
+                ['ASUS ROG Hyperion GR701 White Edition', 479, 'ATX', 'Flagship White Aluminum + Aura RGB', ['gaming', 'white', 'rgb']],
+                ['ASUS ProArt PA602 E-ATX Wood Edition', 249, 'ATX', '2x 200mm Front Fans, IR Dust Sensor', ['workstation', 'stealth']],
+                ['Phanteks NV7 Full-Tower Showcase Black', 219, 'ATX', 'Seamless Glass + Integrated D-RGB Frame', ['gaming', 'workstation', 'rgb']],
+                ['Phanteks NV7 Full-Tower Showcase White', 229, 'ATX', 'White Full-Tower + 12-Fan Capacity', ['gaming', 'white', 'rgb']],
+                ['Cooler Master COSMOS C700M Full-Tower', 449, 'ATX', 'Curved Tempered Glass, Aluminum Handles', ['workstation', 'gaming', 'rgb']]
+            ];
+            caseModels.forEach((m, i) => db.case.push({ id: `case-${i+1}`, name: m[0], price: m[1], formFactor: m[2], wattage: 0, specs: m[3], tags: m[4], img: imgs.case[0] }));
+
+            // 8. CPU Coolers (103 real models across Budget Air, Dual-Tower Air, 240/360/420mm AIOs & LCD Flagships)
+            const coolerModels = [
+                // Budget Air
+                ['Thermalright Assassin X 120 Refined SE', 18, 4, '4 Heatpipes, 120mm TL-C12C PWM', ['office', 'gaming', 'stealth']],
+                ['Thermalright Assassin X 120 R SE ARGB', 20, 6, '4 Heatpipes, 120mm ARGB Fan', ['gaming', 'rgb']],
+                ['Thermalright Assassin X 120 R SE White ARGB', 21, 6, 'All-White 148mm Tower + ARGB', ['gaming', 'white', 'rgb']],
+                ['Thermalright Assassin King 120 SE', 21, 4, '5x 6mm Heatpipes, Direct Touch', ['office', 'gaming', 'stealth']],
+                ['Thermalright Burst Assassin 120', 23, 5, '6 Heatpipes Single Tower, 154mm', ['gaming', 'office', 'stealth']],
+                ['ID-COOLING SE-214-XT Black ARGB', 19, 6, '4 Direct Heatpipes, 180W TDP', ['gaming', 'rgb']],
+                ['ID-COOLING SE-214-XT White ARGB', 20, 6, 'White Top Cover & Fan, ARGB', ['gaming', 'white', 'rgb']],
+                ['ID-COOLING FROZN A410 Black', 29, 5, 'All-Black Matte Finish, FDB Fan', ['gaming', 'office', 'stealth']],
+                ['ID-COOLING FROZN A410 White', 31, 5, 'All-White Single Tower, 220W TDP', ['gaming', 'white']],
+                ['DeepCool AG400 Black', 24, 5, '4 Copper Heatpipes, 150mm Height', ['office', 'gaming', 'stealth']],
+                ['DeepCool AK400 Zero Dark', 34, 5, 'All-Black Matrix Fin Array, 220W TDP', ['gaming', 'office', 'stealth']],
+                ['DeepCool AK400 White', 36, 5, 'Pure White Shroud & FDB Fan', ['gaming', 'white']],
+                ['DeepCool AK400 Digital Black', 44, 6, 'Real-Time CPU Temp & Usage Display', ['gaming', 'stealth']],
+                ['Cooler Master Hyper 212 Black Edition', 34, 5, 'Anodized Gun-Metal Black, Silencio Fan', ['office', 'gaming', 'stealth']],
+                ['Cooler Master Hyper 212 Halo Black', 39, 6, 'Dual-Loop MF120 Halo2 ARGB Fan', ['gaming', 'rgb']],
+                ['Cooler Master Hyper 212 Halo White', 42, 6, 'All-White Fin Stack + Halo2 ARGB', ['gaming', 'white', 'rgb']],
+                ['be quiet! Pure Rock 2 Black', 39, 5, '150W TDP, Pure Wings 2 120mm PWM', ['office', 'gaming', 'stealth']],
+                ['be quiet! Pure Rock Slim 2', 27, 4, '130W TDP, Compact 135mm Height', ['office', 'stealth']],
+                ['Arctic Freezer 36 Black', 34, 5, 'Dual 120mm P12 PWM Push-Pull Fans', ['gaming', 'office', 'stealth']],
+                ['Arctic Freezer 36 A-RGB White', 42, 6, 'White Dual-Fan Tower + A-RGB', ['gaming', 'white', 'rgb']],
+                ['Noctua NH-L9i-17xx Low Profile', 44, 4, '37mm Ultra-Low Profile, LGA1700', ['office', 'stealth']],
+                ['Noctua NH-L9a-AM5 chromax.black', 54, 4, '37mm All-Black SFF Low Profile', ['office', 'stealth']],
+                ['Thermalright AXP90-X47 Full Copper', 39, 4, '47mm Pure Copper SFF Low Profile', ['gaming', 'office']],
+                ['Vetroo V5 Black ARGB', 27, 6, '5 Heatpipes, 120mm Addressable RGB', ['gaming', 'rgb']],
+                ['Vetroo V5 White ARGB', 29, 6, 'White Heatsink + 120mm ARGB Fan', ['gaming', 'white', 'rgb']],
+                // Midrange Dual-Tower Air & 240mm AIOs
+                ['Thermalright Peerless Assassin 120 SE', 35, 7, 'Dual Tower, 6 Heatpipes, 2x 120mm', ['gaming', 'workstation', 'stealth']],
+                ['Thermalright Peerless Assassin 120 SE ARGB', 37, 8, 'Dual Tower Black + Dual ARGB Fans', ['gaming', 'rgb']],
+                ['Thermalright Peerless Assassin 120 White ARGB', 39, 8, 'All-White Dual Tower + Dual ARGB', ['gaming', 'white', 'rgb']],
+                ['Thermalright Phantom Spirit 120 SE', 36, 7, '7 Heatpipes Dual Tower, Top Value', ['gaming', 'workstation', 'stealth']],
+                ['Thermalright Phantom Spirit 120 SE ARGB', 39, 8, '7 Heatpipes + Dual TL-C12B-S ARGB', ['gaming', 'rgb']],
+                ['Thermalright Phantom Spirit 120 EVO', 49, 8, 'Blackout Anodized + 2150 RPM Fans', ['gaming', 'workstation', 'stealth']],
+                ['Thermalright Frost Commander 140 Black', 44, 8, '8mm Heatpipes, 120mm + 140mm Fans', ['workstation', 'gaming', 'stealth']],
+                ['DeepCool AK620 Zero Dark', 64, 8, 'All-Black Dual Tower, 260W TDP', ['gaming', 'workstation', 'stealth']],
+                ['DeepCool AK620 White', 66, 8, 'Pure White Dual-Tower Heatsink', ['gaming', 'workstation', 'white']],
+                ['DeepCool AK620 Digital Black', 74, 9, 'Magnetic Top LED Status Screen', ['gaming', 'stealth']],
+                ['DeepCool Assassin IV Black', 89, 8, 'Silent Cube Dual-Tower, 280W TDP', ['workstation', 'gaming', 'stealth']],
+                ['DeepCool Assassin IV White', 94, 8, 'Minimalist White Cube Air Cooler', ['workstation', 'white']],
+                ['Scythe Fuma 3 Dual Tower', 49, 7, 'Asymmetric RAM Clearance, Quiet', ['gaming', 'workstation', 'stealth']],
+                ['ID-COOLING FROZN A620 PRO SE', 34, 7, 'Dual Tower Blackout, 270W TDP', ['gaming', 'workstation', 'stealth']],
+                ['be quiet! Dark Rock 5', 69, 6, '210W TDP, Silent Wings 4 120mm PWM', ['gaming', 'workstation', 'stealth']],
+                ['be quiet! Dark Rock Pro 5', 89, 8, '270W TDP, Dual Silent Wings PWM', ['workstation', 'gaming', 'stealth']],
+                ['be quiet! Dark Rock Elite', 104, 9, 'Rail-Mounted Front Fan + ARGB Top', ['workstation', 'gaming', 'rgb']],
+                ['Noctua NH-U12S chromax.black', 89, 5, '120mm Single Tower, NF-F12 PWM', ['office', 'gaming', 'stealth']],
+                ['Noctua NH-U12A chromax.black', 129, 7, '7 Heatpipes, Dual NF-A12x25 PWM', ['workstation', 'gaming', 'stealth']],
+                ['Noctua NH-D15 chromax.black', 119, 8, 'Iconic Dual 140mm Flagship Air', ['workstation', 'gaming', 'stealth']],
+                ['Noctua NH-D15 G2 Standard', 149, 8, '8 Asymmetric Heatpipes, NF-A14x25r G2', ['workstation', 'gaming']],
+                ['Thermalright Frozen Notte 240 Black ARGB', 54, 12, '240mm AIO, 5300 RPM Pump, ARGB', ['gaming', 'rgb']],
+                ['Thermalright Frozen Notte 240 White ARGB', 56, 12, 'All-White 240mm AIO + Infinity Mirror', ['gaming', 'white', 'rgb']],
+                ['Thermalright Frozen Prism 360 Black ARGB', 59, 14, '360mm AIO Radiator, High Value', ['gaming', 'workstation', 'rgb']],
+                ['Thermalright Frozen Prism 360 White ARGB', 62, 14, 'All-White 360mm AIO Liquid Cooler', ['gaming', 'white', 'rgb']],
+                ['ID-COOLING FROSTFLOW X 240 Snow', 54, 10, 'White 240mm AIO, White LED Pump', ['gaming', 'white']],
+                ['ID-COOLING DASHFLOW 360 Basic Black', 69, 13, '360mm Radiator, 3x 120mm PWM', ['gaming', 'workstation', 'stealth']],
+                ['Arctic Liquid Freezer III 240 Black', 76, 12, '38mm Thick Rad + VRM Cooling Fan', ['gaming', 'workstation', 'stealth']],
+                ['Arctic Liquid Freezer III 240 A-RGB Black', 86, 14, '38mm Thick Rad + P12 PWM A-RGB', ['gaming', 'rgb']],
+                ['Arctic Liquid Freezer III 240 A-RGB White', 89, 14, 'White 240mm Thick Rad + VRM Fan', ['gaming', 'white', 'rgb']],
+                ['Arctic Liquid Freezer III 280 Black', 86, 13, '280mm Thick Radiator, P14 PWM', ['gaming', 'workstation', 'stealth']],
+                ['Cooler Master MasterLiquid 240L Core ARGB', 74, 12, 'Gen S Dual-Chamber Pump, ARGB', ['gaming', 'rgb']],
+                ['Cooler Master MasterLiquid 360L Core ARGB', 89, 14, '360mm Radiator, CryoFuze Paste', ['gaming', 'workstation', 'rgb']],
+                ['Cooler Master MasterLiquid 360L Core White', 94, 14, 'All-White 360mm AIO + ARGB', ['gaming', 'white', 'rgb']],
+                ['MSI MAG CoreLiquid E240 Black', 89, 12, 'Rotatable Pump Cap, 240mm ARGB', ['gaming', 'rgb']],
+                ['MSI MAG CoreLiquid E360 Black', 109, 14, '360mm Radiator, Split-Flow Waterblock', ['gaming', 'workstation', 'rgb']],
+                ['MSI MAG CoreLiquid E360 White', 114, 14, 'White 360mm Radiator + ARGB Fans', ['gaming', 'white', 'rgb']],
+                ['DeepCool LS520 SE 240mm AIO', 79, 12, '4th Gen Dual-Chamber Pump, ARGB', ['gaming', 'rgb']],
+                ['DeepCool LS720 SE 360mm AIO Black', 99, 14, '360mm Infinity Mirror Pump, ARGB', ['gaming', 'workstation', 'rgb']],
+                ['DeepCool LS720 SE 360mm AIO White', 104, 14, 'White 360mm AIO + ARGB Fans', ['gaming', 'white', 'rgb']],
+                ['Corsair Nautilus 240 RS ARGB Black', 99, 12, 'Daisy-Chain RS120 ARGB Fans, 240mm', ['gaming', 'rgb']],
+                ['Corsair Nautilus 360 RS Black', 119, 13, '360mm Stealth No-RGB AIO', ['gaming', 'workstation', 'stealth']],
+                ['Corsair Nautilus 360 RS ARGB White', 129, 14, 'All-White 360mm AIO + ARGB', ['gaming', 'white', 'rgb']],
+                ['NZXT Kraken 240 Black', 129, 13, '1.54" Square LCD Display, 240mm', ['gaming', 'stealth']],
+                ['NZXT Kraken 240 White', 134, 13, 'White 240mm AIO + 1.54" LCD Screen', ['gaming', 'white']],
+                ['NZXT Kraken 240 RGB Black', 159, 15, '1.54" LCD + 2x F120 RGB Core Fans', ['gaming', 'rgb']],
+                ['NZXT Kraken 240 RGB White', 164, 15, 'White 240mm LCD + White RGB Fans', ['gaming', 'white', 'rgb']],
+                // Flagship 360mm / 420mm & Full IPS LCD AIOs
+                ['Arctic Liquid Freezer III 360 Black', 94, 14, '38mm Thick Rad, Top Thermal Perf.', ['workstation', 'gaming', 'stealth']],
+                ['Arctic Liquid Freezer III 360 A-RGB Black', 108, 16, '38mm Thick Rad + 3x P12 A-RGB', ['gaming', 'workstation', 'rgb']],
+                ['Arctic Liquid Freezer III 360 A-RGB White', 114, 16, 'All-White 360mm + VRM Fan', ['gaming', 'white', 'rgb']],
+                ['Arctic Liquid Freezer III 420 Black', 114, 16, 'Massive 420mm Rad + 3x 140mm Fans', ['workstation', 'gaming', 'stealth']],
+                ['Arctic Liquid Freezer III 420 A-RGB White', 129, 18, 'White 420mm Enthusiast Radiator', ['workstation', 'gaming', 'white', 'rgb']],
+                ['Lian Li Galahad II Trinity 360 Black', 139, 15, '3 Swappable Pump Caps, Daisy-Chain', ['gaming', 'workstation', 'rgb']],
+                ['Lian Li Galahad II Trinity 360 White', 144, 15, 'White 360mm AIO + ARGB Fans', ['gaming', 'white', 'rgb']],
+                ['Lian Li Galahad II Trinity SL-INF 360 Black', 179, 16, '3x UNI FAN SL-Infinity Mirror Fans', ['gaming', 'rgb']],
+                ['Lian Li Galahad II Trinity SL-INF 360 White', 184, 16, 'White + 3x SL-Infinity Mirror Fans', ['gaming', 'white', 'rgb']],
+                ['Lian Li Galahad II LCD 360 Black', 219, 17, '2.88" 480x480 IPS LCD + Asetek 8th Gen', ['gaming', 'workstation', 'rgb']],
+                ['Lian Li Galahad II LCD SL-INF 360 White', 249, 18, 'White 2.88" IPS LCD + SL-INF Fans', ['gaming', 'white', 'rgb']],
+                ['Lian Li HydroShift LCD 360S Black', 179, 16, 'Side-Routed Hidden Tubes + 2.88" LCD', ['gaming', 'stealth']],
+                ['Lian Li HydroShift LCD 360R White', 199, 17, 'White Hidden-Tube AIO + 2.88" LCD', ['gaming', 'white', 'rgb']],
+                ['NZXT Kraken 360 Black', 169, 15, '1.54" Square LCD, 360mm Radiator', ['gaming', 'workstation', 'stealth']],
+                ['NZXT Kraken 360 White', 174, 15, 'White 360mm AIO + 1.54" LCD Screen', ['gaming', 'white']],
+                ['NZXT Kraken 360 RGB Black', 199, 17, '1.54" LCD + 3x F120 RGB Core Fans', ['gaming', 'rgb']],
+                ['NZXT Kraken 360 RGB White', 204, 17, 'White 360mm LCD + White RGB Fans', ['gaming', 'white', 'rgb']],
+                ['NZXT Kraken Elite 240 RGB Black', 239, 16, '2.36" 640x640 Wide-Angle IPS LCD', ['gaming', 'rgb']],
+                ['NZXT Kraken Elite 360 Black', 269, 17, '2.36" 60Hz True-Color IPS LCD, 360mm', ['gaming', 'workstation', 'stealth']],
+                ['NZXT Kraken Elite 360 RGB Black', 289, 18, '2.36" 640x640 LCD + F360 RGB Core', ['gaming', 'rgb']],
+                ['NZXT Kraken Elite 360 RGB White', 299, 18, 'All-White 2.36" IPS LCD + RGB Core', ['gaming', 'white', 'rgb']],
+                ['Corsair iCUE LINK H100i RGB 240mm Black', 149, 15, 'Single-Cable iCUE LINK, QX120 RGB', ['gaming', 'rgb']],
+                ['Corsair iCUE LINK H150i RGB 360mm Black', 189, 17, 'Single-Cable iCUE LINK, 3x QX120 RGB', ['gaming', 'workstation', 'rgb']],
+                ['Corsair iCUE LINK H150i RGB 360mm White', 199, 17, 'White 360mm iCUE LINK + QX120 White', ['gaming', 'white', 'rgb']],
+                ['Corsair iCUE LINK H150i LCD 360mm Black', 249, 18, '2.1" IPS LCD Screen + QX120 RGB Fans', ['gaming', 'workstation', 'rgb']],
+                ['Corsair iCUE LINK H150i LCD 360mm White', 259, 18, 'White 2.1" IPS LCD + QX120 White RGB', ['gaming', 'white', 'rgb']],
+                ['Corsair iCUE LINK TITAN 360 RX LCD Black', 219, 17, 'FlowDrive Pump + CapSwap 2.1" LCD', ['gaming', 'workstation', 'rgb']],
+                ['Corsair iCUE LINK TITAN 360 RX LCD White', 229, 17, 'White FlowDrive + CapSwap 2.1" LCD', ['gaming', 'white', 'rgb']],
+                ['Corsair iCUE LINK H170i LCD 420mm Black', 279, 20, 'Massive 420mm Rad + 3x QX140 + LCD', ['workstation', 'gaming', 'rgb']],
+                ['ASUS ROG Ryujin III 360 ARGB Black', 329, 18, '3.5" Full-Color LCD + Embedded VRM Fan', ['gaming', 'workstation', 'rgb']],
+                ['ASUS ROG Ryujin III 360 ARGB White Edition', 349, 18, 'White 3.5" LCD + Magnetic Daisy Fans', ['gaming', 'white', 'rgb']]
+            ];
+            coolerModels.forEach((m, i) => db.cooler.push({ id: `cool-${i+1}`, name: m[0], price: m[1], wattage: m[2], specs: m[3], tags: m[4], img: imgs.cooler[0] }));
+
+            return db;
+        })();
+        // Category Metadata
+        const CATEGORIES = [
+            { id: 'cpu', title: 'Processor (CPU)', icon: 'fa-microchip', required: true },
+            { id: 'motherboard', title: 'Motherboard', icon: 'fa-chess-board', required: true },
+            { id: 'ram', title: 'Memory (RAM)', icon: 'fa-memory', required: true },
+            { id: 'gpu', title: 'Graphics Card (GPU)', icon: 'fa-display', required: false },
+            { id: 'storage', title: 'Primary SSD Storage', icon: 'fa-hard-drive', required: true },
+            { id: 'psu', title: 'Power Supply (PSU)', icon: 'fa-plug', required: true },
+            { id: 'case', title: 'PC Cabinet / Case', icon: 'fa-box-open', required: true },
+            { id: 'cooler', title: 'CPU Cooler', icon: 'fa-fan', required: false }
+        ];
+
+        // Global State (Defined BEFORE Currency & Formatter Helpers)
+        let state = {
+            selected: { cpu: null, motherboard: null, ram: null, gpu: null, storage: null, psu: null, case: null, cooler: null },
+            filters: { usecase: 'all', theme: 'all', formfactor: 'all', maxprice: 2500 },
+            activeModalCategory: null,
+            modalSearchQuery: '',
+            modalSortBy: 'price-asc',
+            currency: 'USD'
+        };
+
+        // Currency Configuration & Exchange Rates
+        const CURRENCIES = {
+            USD: { symbol: '$', rate: 1, locale: 'en-US' },
+            AED: { symbol: 'AED ', rate: 3.673, locale: 'en-AE' },
+            INR: { symbol: '₹', rate: 94.26, locale: 'en-IN' }
+        };
+
+        function formatPrice(usdAmount) {
+            if (!usdAmount || isNaN(usdAmount)) return `${CURRENCIES[state.currency].symbol}0`;
+            const curr = CURRENCIES[state.currency] || CURRENCIES.USD;
+            const converted = Math.round(usdAmount * curr.rate);
+            return `${curr.symbol}${converted.toLocaleString(curr.locale)}`;
+        }
+
+        // DOM Elements
+        const categoriesWrapper = document.getElementById('component-categories-wrapper');
+        const desktopSummaryCard = document.getElementById('desktop-summary-card');
+        const mobileModalSummary = document.getElementById('mobile-modal-summary-content');
+        const selectionModal = document.getElementById('selection-modal');
+        const modalItemsGrid = document.getElementById('modal-items-grid');
+
+        // Initialize App
+        function init() {
+            loadFromLocalStorage();
+            setupEventListeners();
+            renderCategorySlots();
+            updateBuildSummary();
+        }
+
+        function saveToLocalStorage() {
+            try { localStorage.setItem('sleekrig_build_v5', JSON.stringify(state.selected)); } catch (e) {}
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('sleekrig_build_v5');
+                if (saved) state.selected = { ...state.selected, ...JSON.parse(saved) };
+            } catch (e) {}
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-mono-900 text-mono-50 dark:bg-mono-100 dark:text-mono-950 border-green-500' :
+                            type === 'error' ? 'bg-red-600 text-white border-red-400' :
+                            'bg-mono-800 text-mono-100 dark:bg-mono-200 dark:text-mono-900 border-mono-500';
+            
+            toast.className = `px-4 py-3 rounded-xl border text-xs font-mono shadow-xl flex items-center gap-2.5 transform transition-all duration-300 translate-x-12 opacity-0 pointer-events-auto ${bgClass}`;
+            const icon = type === 'success' ? 'fa-circle-check text-green-400 dark:text-green-600' : type === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-info';
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('translate-x-12', 'opacity-0'));
+            setTimeout(() => {
+                toast.classList.add('translate-x-12', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function setupEventListeners() {
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                showToast('Theme updated');
+            });
+
+            document.getElementById('currency-select').addEventListener('change', (e) => {
+                state.currency = e.target.value;
+                document.getElementById('budget-value-display').textContent = formatPrice(state.filters.maxprice);
+                renderCategorySlots();
+                updateBuildSummary();
+                if (!selectionModal.classList.contains('hidden')) renderModalProducts();
+                showToast(`Currency switched to ${state.currency}`);
+            });
+
+            document.getElementById('clear-build-btn').addEventListener('click', resetBuild);
+
+            document.getElementById('filter-usecase').addEventListener('change', (e) => { state.filters.usecase = e.target.value; renderCategorySlots(); });
+            document.getElementById('filter-theme').addEventListener('change', (e) => { state.filters.theme = e.target.value; renderCategorySlots(); });
+            document.getElementById('filter-formfactor').addEventListener('change', (e) => { state.filters.formfactor = e.target.value; renderCategorySlots(); });
+            document.getElementById('filter-maxprice').addEventListener('input', (e) => {
+                state.filters.maxprice = parseInt(e.target.value, 10);
+                document.getElementById('budget-value-display').textContent = formatPrice(state.filters.maxprice);
+                renderCategorySlots();
+            });
+
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+            });
+
+            document.getElementById('close-selection-modal').addEventListener('click', closeSelectionModal);
+            selectionModal.addEventListener('click', (e) => { if (e.target === selectionModal) closeSelectionModal(); });
+
+            const searchInput = document.getElementById('modal-search-input');
+            const liveSearchBtn = document.getElementById('live-search-btn');
+
+            liveSearchBtn.addEventListener('click', () => {
+                state.modalSearchQuery = searchInput.value.trim();
+                renderModalProducts();
+            });
+
+            searchInput.addEventListener('input', (e) => {
+                state.modalSearchQuery = e.target.value;
+                renderModalProducts();
+            });
+
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    state.modalSearchQuery = searchInput.value.trim();
+                    renderModalProducts();
+                }
+            });
+
+            document.getElementById('modal-sort-select').addEventListener('change', (e) => {
+                state.modalSortBy = e.target.value;
+                renderModalProducts();
+            });
+
+            document.getElementById('toggle-custom-form-btn').addEventListener('click', () => {
+                document.getElementById('custom-item-form').classList.toggle('hidden');
+            });
+
+            document.getElementById('save-custom-item-btn').addEventListener('click', addCustomProduct);
+
+            const mobileModal = document.getElementById('mobile-modal');
+            document.getElementById('open-mobile-modal').addEventListener('click', () => mobileModal.classList.remove('hidden'));
+            document.getElementById('close-mobile-modal').addEventListener('click', () => mobileModal.classList.add('hidden'));
+            mobileModal.addEventListener('click', (e) => { if (e.target === mobileModal) mobileModal.classList.add('hidden'); });
+        }
+
+        function applyPreset(presetName) {
+            const findPart = (cat, sub) => HARDWARE_DATABASE[cat].find(i => i.name.includes(sub)) || HARDWARE_DATABASE[cat][0];
+            if (presetName === 'gaming') {
+                state.selected = {
+                    cpu: findPart('cpu', 'Ryzen 7 7800X3D'),
+                    motherboard: findPart('motherboard', 'MAG B650 Tomahawk'),
+                    ram: findPart('ram', 'Flare X5'),
+                    gpu: findPart('gpu', 'RTX 4080 Super'),
+                    storage: findPart('storage', '990 PRO 2TB'),
+                    psu: findPart('psu', 'RM850x'),
+                    case: findPart('case', 'H6 Flow'),
+                    cooler: findPart('cooler', 'Kraken 360')
+                };
+                showToast('Loaded 4K Gaming Preset', 'success');
+            } else if (presetName === 'workstation') {
+                state.selected = {
+                    cpu: findPart('cpu', 'i7-14700K'),
+                    motherboard: findPart('motherboard', 'Z790'),
+                    ram: findPart('ram', 'Dominator Titanium'),
+                    gpu: findPart('gpu', 'RTX 4090'),
+                    storage: findPart('storage', '990 PRO 2TB'),
+                    psu: findPart('psu', 'RM1000x'),
+                    case: findPart('case', '4000D Airflow'),
+                    cooler: findPart('cooler', 'Peerless Assassin')
+                };
+                showToast('Loaded Creator Workstation Preset', 'success');
+            } else if (presetName === 'budget') {
+                state.selected = {
+                    cpu: findPart('cpu', 'Ryzen 5 5600'),
+                    motherboard: findPart('motherboard', 'B450M-A PRO'),
+                    ram: findPart('ram', 'Vengeance LPX'),
+                    gpu: findPart('gpu', 'RX 6600'),
+                    storage: findPart('storage', 'Kingston NV2'),
+                    psu: findPart('psu', 'MAG A650BN'),
+                    case: findPart('case', 'AIR 100'),
+                    cooler: findPart('cooler', 'Assassin X')
+                };
+                showToast('Loaded Ultra Budget Preset', 'success');
+            }
+            saveToLocalStorage();
+            renderCategorySlots();
+            updateBuildSummary();
+        }
+
+        function resetBuild() {
+            state.selected = { cpu: null, motherboard: null, ram: null, gpu: null, storage: null, psu: null, case: null, cooler: null };
+            saveToLocalStorage();
+            renderCategorySlots();
+            updateBuildSummary();
+            showToast('Build configuration reset');
+        }
+
+        function passesGlobalFilters(item) {
+            if (item.price > state.filters.maxprice) return false;
+            if (state.filters.usecase !== 'all' && item.tags && !item.tags.includes(state.filters.usecase)) return false;
+            if (state.filters.theme !== 'all' && item.tags && !item.tags.includes(state.filters.theme)) return false;
+            if (state.filters.formfactor !== 'all' && item.formFactor && item.formFactor !== state.filters.formfactor) return false;
+            return true;
+        }
+
+        function renderCategorySlots() {
+            categoriesWrapper.innerHTML = '';
+
+            CATEGORIES.forEach(cat => {
+                const selectedItem = state.selected[cat.id];
+                const matchingCount = HARDWARE_DATABASE[cat.id].filter(passesGlobalFilters).length;
+
+                const card = document.createElement('div');
+                card.className = 'bg-mono-50 dark:bg-mono-900/50 border border-mono-200 dark:border-mono-800 rounded-2xl p-4 sm:p-5 transition-all hover:border-mono-400 dark:hover:border-mono-600 shadow-sm';
+
+                if (selectedItem) {
+                    card.innerHTML = `
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div class="flex items-center gap-4">
+                                <img src="${selectedItem.img}" alt="${selectedItem.name}" class="w-16 h-16 rounded-xl object-cover border border-mono-200 dark:border-mono-800 bg-mono-100 dark:bg-mono-950 shrink-0">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-mono-200 dark:bg-mono-800 text-mono-600 dark:text-mono-300 font-semibold">${cat.title}</span>
+                                        ${selectedItem.socket ? `<span class="text-[10px] font-mono text-mono-500 border border-mono-300 dark:border-mono-700 px-1.5 rounded">${selectedItem.socket}</span>` : ''}
+                                        ${selectedItem.formFactor ? `<span class="text-[10px] font-mono text-mono-500 border border-mono-300 dark:border-mono-700 px-1.5 rounded">${selectedItem.formFactor}</span>` : ''}
+                                    </div>
+                                    <h3 class="font-semibold text-sm sm:text-base mt-1">${selectedItem.name}</h3>
+                                    <p class="text-xs text-mono-500 mt-0.5">${selectedItem.specs}</p>
+                                </div>
+                            </div>
+
+                            <div class="flex sm:flex-col items-center sm:items-end justify-between gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 border-mono-200 dark:border-mono-800 shrink-0">
+                                <div class="text-left sm:text-right">
+                                    <span class="font-mono font-bold text-base sm:text-lg block">${formatPrice(selectedItem.price)}</span>
+                                    <span class="text-[11px] font-mono text-mono-400">${selectedItem.wattage ? `${selectedItem.wattage}W TDP` : selectedItem.capacity ? `${selectedItem.capacity}W Max` : ''}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <button onclick="openSelectionModal('${cat.id}')" class="px-3 py-1.5 rounded-lg border border-mono-300 dark:border-mono-700 hover:bg-mono-200 dark:hover:bg-mono-800 text-xs font-mono transition-colors">
+                                        Change
+                                    </button>
+                                    <button onclick="removeComponent('${cat.id}')" class="p-1.5 rounded-lg border border-mono-300 dark:border-mono-700 hover:border-red-500 hover:text-red-500 text-xs transition-colors" title="Remove">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-3.5">
+                                <div class="w-12 h-12 rounded-xl bg-mono-100 dark:bg-mono-950 border border-mono-200 dark:border-mono-800 flex items-center justify-center text-mono-400">
+                                    <i class="fa-solid ${cat.icon} text-base"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-semibold text-sm sm:text-base">${cat.title}</h3>
+                                        ${cat.required ? '<span class="text-[10px] font-mono text-mono-400">*Required</span>' : ''}
+                                    </div>
+                                    <p class="text-xs text-mono-500 mt-0.5">${matchingCount} compatible items available</p>
+                                </div>
+                            </div>
+
+                            <button onclick="openSelectionModal('${cat.id}')" class="px-4 py-2 rounded-xl bg-mono-900 text-mono-50 dark:bg-mono-100 dark:text-mono-950 hover:opacity-90 text-xs font-mono font-semibold transition-opacity flex items-center gap-2 shrink-0 shadow-sm">
+                                <i class="fa-solid fa-plus text-[10px]"></i> Choose
+                            </button>
+                        </div>
+                    `;
+                }
+
+                categoriesWrapper.appendChild(card);
+            });
+        }
+
+        function openSelectionModal(categoryId) {
+            state.activeModalCategory = categoryId;
+            state.modalSearchQuery = '';
+            document.getElementById('modal-search-input').value = '';
+            document.getElementById('custom-item-form').classList.add('hidden');
+            
+            const cat = CATEGORIES.find(c => c.id === categoryId);
+            document.getElementById('modal-category-title').textContent = `Select ${cat.title}`;
+            
+            renderModalProducts();
+            selectionModal.classList.remove('hidden');
+        }
+
+        function closeSelectionModal() {
+            selectionModal.classList.add('hidden');
+            state.activeModalCategory = null;
+        }
+
+        function renderModalProducts() {
+            const catId = state.activeModalCategory;
+            if (!catId) return;
+
+            let items = [...HARDWARE_DATABASE[catId]];
+
+            if (state.modalSearchQuery.trim() !== '') {
+                const tokens = state.modalSearchQuery.toLowerCase().trim().split(/\s+/);
+                items = items.filter(i => {
+                    const haystack = `${i.name} ${i.specs} ${i.socket || ''} ${i.formFactor || ''} ${(i.tags || []).join(' ')}`.toLowerCase();
+                    return tokens.every(token => haystack.includes(token));
+                });
+            }
+
+            if (state.modalSearchQuery.trim() === '') {
+                items = items.filter(passesGlobalFilters);
+            }
+
+            if (state.modalSortBy === 'price-asc') items.sort((a, b) => a.price - b.price);
+            if (state.modalSortBy === 'price-desc') items.sort((a, b) => b.price - a.price);
+            if (state.modalSortBy === 'name') items.sort((a, b) => a.name.localeCompare(b.name));
+
+            const countEl = document.getElementById('modal-item-count');
+            if (countEl) countEl.textContent = `${items.length} / ${HARDWARE_DATABASE[catId].length} items`;
+
+            modalItemsGrid.innerHTML = '';
+
+            if (items.length === 0) {
+                modalItemsGrid.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-mono-500">
+                        <i class="fa-solid fa-filter-circle-xmark text-2xl mb-2 opacity-50"></i>
+                        <p class="text-sm font-mono">No matching ${catId.toUpperCase()} components found.</p>
+                        <p class="text-xs mt-1">Try adjusting your search keywords, global price slider, or click "+ Add Custom".</p>
+                    </div>
+                `;
+                return;
+            }
+
+            items.forEach(item => {
+                const isSelected = state.selected[catId]?.id === item.id;
+                const el = document.createElement('div');
+                el.className = `p-4 rounded-xl border transition-all flex flex-col justify-between gap-3 ${
+                    isSelected 
+                    ? 'border-mono-900 dark:border-mono-100 bg-mono-100 dark:bg-mono-800/70' 
+                    : 'border-mono-200 dark:border-mono-800 hover:border-mono-400 dark:hover:border-mono-600 bg-mono-50 dark:bg-mono-950/60'
+                }`;
+
+                el.innerHTML = `
+                    <div class="flex items-start gap-3.5">
+                        <img src="${item.img}" alt="${item.name}" class="w-14 h-14 rounded-lg object-cover border border-mono-200 dark:border-mono-800 shrink-0">
+                        <div>
+                            <div class="flex flex-wrap gap-1 mb-1">
+                                ${item.socket ? `<span class="text-[10px] font-mono bg-mono-200 dark:bg-mono-800 px-1.5 py-0.5 rounded">${item.socket}</span>` : ''}
+                                ${item.formFactor ? `<span class="text-[10px] font-mono bg-mono-200 dark:bg-mono-800 px-1.5 py-0.5 rounded">${item.formFactor}</span>` : ''}
+                            </div>
+                            <h4 class="font-semibold text-xs sm:text-sm leading-snug">${item.name}</h4>
+                            <p class="text-[11px] text-mono-500 mt-1">${item.specs}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2.5 border-t border-mono-200 dark:border-mono-800/80">
+                        <div>
+                            <span class="font-mono font-bold text-sm">${formatPrice(item.price)}</span>
+                            <span class="text-[10px] font-mono text-mono-400 ml-2">${item.wattage ? `${item.wattage}W` : item.capacity ? `${item.capacity}W` : ''}</span>
+                        </div>
+                        <button onclick="selectComponent('${catId}', '${item.id}')" class="px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all ${
+                            isSelected 
+                            ? 'bg-green-600 text-white' 
+                            : 'bg-mono-900 text-mono-50 dark:bg-mono-100 dark:text-mono-950 hover:opacity-90'
+                        }">
+                            ${isSelected ? 'Selected' : 'Add'}
+                        </button>
+                    </div>
+                `;
+                modalItemsGrid.appendChild(el);
+            });
+        }
+
+        function addCustomProduct() {
+            const catId = state.activeModalCategory;
+            const name = document.getElementById('custom-name').value.trim();
+            const rawInputPrice = parseFloat(document.getElementById('custom-price').value);
+            const wattage = parseInt(document.getElementById('custom-wattage').value, 10) || 0;
+
+            if (!name || isNaN(rawInputPrice) || rawInputPrice < 0) {
+                showToast('Please enter a valid name and price', 'error');
+                return;
+            }
+
+            const priceInUSD = rawInputPrice / CURRENCIES[state.currency].rate;
+
+            const newPart = {
+                id: `custom-${Date.now()}`,
+                name,
+                price: priceInUSD,
+                wattage: catId === 'psu' ? 0 : wattage,
+                capacity: catId === 'psu' ? (wattage || 750) : undefined,
+                specs: 'Custom User Added Part',
+                tags: ['gaming', 'workstation', 'office', 'stealth', 'white', 'rgb'],
+                img: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=300&auto=format&fit=crop&q=80'
+            };
+
+            HARDWARE_DATABASE[catId].unshift(newPart);
+            selectComponent(catId, newPart.id);
+            document.getElementById('custom-name').value = '';
+            document.getElementById('custom-price').value = '';
+            document.getElementById('custom-wattage').value = '';
+            showToast(`Added custom ${catId.toUpperCase()}: ${name}`, 'success');
+        }
+
+        function selectComponent(categoryId, itemId) {
+            const item = HARDWARE_DATABASE[categoryId].find(i => i.id === itemId);
+            if (!item) return;
+
+            state.selected[categoryId] = item;
+            saveToLocalStorage();
+            closeSelectionModal();
+            renderCategorySlots();
+            updateBuildSummary();
+            showToast(`Selected ${item.name}`, 'success');
+        }
+
+        function removeComponent(categoryId) {
+            state.selected[categoryId] = null;
+            saveToLocalStorage();
+            renderCategorySlots();
+            updateBuildSummary();
+            showToast(`Removed component`);
+        }
+
+        function analyzeBuild() {
+            let totalPrice = 0;
+            let totalWattage = 0;
+            let selectedCount = 0;
+            const issues = [];
+
+            Object.entries(state.selected).forEach(([cat, item]) => {
+                if (item) {
+                    totalPrice += item.price;
+                    if (item.wattage) totalWattage += item.wattage;
+                    selectedCount++;
+                }
+            });
+
+            if (selectedCount > 0) totalWattage += 40;
+
+            const { cpu, motherboard, psu, case: pcCase, ram } = state.selected;
+
+            if (cpu && motherboard && cpu.socket !== motherboard.socket) {
+                issues.push(`Socket Mismatch: ${cpu.name} (${cpu.socket}) is incompatible with ${motherboard.name} (${motherboard.socket}).`);
+            }
+
+            if (motherboard && pcCase) {
+                if (motherboard.formFactor === 'ATX' && pcCase.formFactor === 'Micro-ATX') {
+                    issues.push(`Size Conflict: Standard ATX Motherboard will not fit inside Micro-ATX ${pcCase.name}.`);
+                }
+            }
+
+            if (motherboard && ram) {
+                const mbDDR5 = motherboard.specs.includes('DDR5');
+                const ramDDR5 = ram.name.includes('DDR5');
+                if (mbDDR5 && !ramDDR5) {
+                    issues.push(`Memory Mismatch: ${motherboard.name} requires DDR5 RAM, but DDR4 was selected.`);
+                } else if (!mbDDR5 && ramDDR5) {
+                    issues.push(`Memory Mismatch: ${motherboard.name} requires DDR4 RAM, but DDR5 was selected.`);
+                }
+            }
+
+            const recommendedPSU = Math.ceil((totalWattage * 1.35) / 50) * 50;
+            if (psu && psu.capacity < totalWattage) {
+                issues.push(`Insufficient Power: Estimated draw (${totalWattage}W) exceeds ${psu.name} capacity (${psu.capacity}W).`);
+            } else if (psu && psu.capacity < recommendedPSU) {
+                issues.push(`Low Wattage Headroom: Consider at least ${recommendedPSU}W PSU for peak transient spikes.`);
+            }
+
+            return { totalPrice, totalWattage, selectedCount, recommendedPSU, issues };
+        }
+
+        function updateBuildSummary() {
+            const { totalPrice, totalWattage, selectedCount, recommendedPSU, issues } = analyzeBuild();
+
+            const selectedPartsListHTML = CATEGORIES.map(cat => {
+                const item = state.selected[cat.id];
+                if (!item) return '';
+                return `
+                    <div class="flex items-center justify-between gap-2 py-2 border-b border-mono-200/70 dark:border-mono-800/70 last:border-b-0 text-xs">
+                        <div class="min-w-0 pr-2">
+                            <span class="text-[10px] font-mono uppercase text-mono-400 block">${cat.title}</span>
+                            <span class="font-medium truncate block text-mono-800 dark:text-mono-200" title="${item.name}">${item.name}</span>
+                        </div>
+                        <div class="flex items-center gap-2.5 shrink-0">
+                            <span class="font-mono font-semibold">${formatPrice(item.price)}</span>
+                            <button onclick="removeComponent('${cat.id}')" class="w-5 h-5 rounded flex items-center justify-center text-mono-400 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Remove part">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('mobile-total-price').textContent = formatPrice(totalPrice);
+            document.getElementById('mobile-selected-count').textContent = selectedCount;
+            const mobileBadge = document.getElementById('mobile-compat-badge');
+            if (issues.length > 0) {
+                mobileBadge.textContent = `${issues.length} Issue`;
+                mobileBadge.className = 'px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-red-500/10 text-red-500 border border-red-500/20';
+            } else {
+                mobileBadge.textContent = 'Compatible';
+                mobileBadge.className = 'px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20';
+            }
+
+            const summaryHTML = `
+                <div class="flex items-center justify-between pb-3 border-b border-mono-200 dark:border-mono-800">
+                    <h2 class="font-bold font-mono text-base uppercase tracking-wide flex items-center gap-2">
+                        <i class="fa-solid fa-terminal text-xs"></i> Build Diagnostics
+                    </h2>
+                    <span class="text-xs font-mono text-mono-500">${selectedCount}/8 Parts</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="p-3.5 rounded-xl bg-mono-50 dark:bg-mono-950 border border-mono-200 dark:border-mono-800">
+                        <span class="text-[10px] font-mono uppercase text-mono-500 block">Total Estimate</span>
+                        <span class="text-2xl font-bold font-mono mt-0.5 block">${formatPrice(totalPrice)}</span>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-mono-50 dark:bg-mono-950 border border-mono-200 dark:border-mono-800">
+                        <span class="text-[10px] font-mono uppercase text-mono-500 block">Est. Power Draw</span>
+                        <span class="text-2xl font-bold font-mono mt-0.5 block">${totalWattage}W</span>
+                        <span class="text-[10px] font-mono text-mono-400">Rec. PSU: ${recommendedPSU > 40 ? recommendedPSU + 'W+' : '450W+'}</span>
+                    </div>
+                </div>
+
+                <div class="p-3.5 rounded-xl bg-mono-50 dark:bg-mono-950 border border-mono-200 dark:border-mono-800 max-h-56 overflow-y-auto">
+                    <span class="text-[10px] font-mono uppercase text-mono-500 block mb-1.5">Selected Components</span>
+                    ${selectedCount > 0 
+                        ? `<div class="flex flex-col">${selectedPartsListHTML}</div>` 
+                        : `<p class="text-xs text-mono-400 font-mono py-2">No components selected yet.</p>`
+                    }
+                </div>
+
+                <div class="p-4 rounded-xl border ${issues.length > 0 ? 'bg-red-500/5 border-red-500/30 text-red-600 dark:text-red-400' : 'bg-green-500/5 border-green-500/30 text-green-700 dark:text-green-400'}">
+                    <div class="flex items-center gap-2 font-mono text-xs font-bold uppercase mb-1.5">
+                        <i class="fa-solid ${issues.length > 0 ? 'fa-triangle-exclamation' : 'fa-circle-check'}"></i>
+                        <span>${issues.length > 0 ? `${issues.length} Compatibility Alert(s)` : 'All Checks Passed'}</span>
+                    </div>
+                    ${issues.length > 0 
+                        ? `<ul class="text-xs space-y-1 list-disc pl-4">${issues.map(err => `<li>${err}</li>`).join('')}</ul>`
+                        : `<p class="text-xs opacity-85">No socket, memory generation, form factor, or power conflicts detected.</p>`
+                    }
+                </div>
+
+                <div class="flex flex-col gap-2 pt-2">
+                    <button onclick="downloadConfigurationPDF()" class="w-full py-3 rounded-xl bg-mono-900 text-mono-50 dark:bg-mono-100 dark:text-mono-950 font-mono font-bold text-xs hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow">
+                        <i class="fa-solid fa-file-pdf"></i> Download Config PDF
+                    </button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="copyBuildSummary()" class="py-2.5 rounded-xl border border-mono-300 dark:border-mono-700 hover:bg-mono-200/50 dark:hover:bg-mono-800/50 font-mono font-semibold text-xs transition-colors flex items-center justify-center gap-1.5">
+                            <i class="fa-regular fa-copy"></i> Copy Text
+                        </button>
+                        <button onclick="resetBuild()" class="py-2.5 rounded-xl border border-mono-300 dark:border-mono-700 hover:border-red-500 hover:text-red-500 font-mono font-semibold text-xs transition-colors flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-rotate-left"></i> Clear All
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            desktopSummaryCard.innerHTML = summaryHTML;
+            mobileModalSummary.innerHTML = summaryHTML;
+        }
+
+        // Vector PDF Document Export with Strict Alignment & Total Price
+        // Vector PDF Document Export with Strict Alignment & Total Price (Fixed Blank Page)
+async function downloadConfigurationPDF() {
+    const { totalPrice, totalWattage, recommendedPSU, issues, selectedCount } = analyzeBuild();
+    if (selectedCount === 0) {
+        showToast('Select at least one component before exporting PDF', 'error');
+        return;
+    }
+
+    showToast('Generating PDF specification...', 'info');
+
+    const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    let tableRowsHTML = '';
+    CATEGORIES.forEach((cat, idx) => {
+        const item = state.selected[cat.id];
+        const bg = idx % 2 === 0 ? '#ffffff' : '#f9fafb';
+        tableRowsHTML += `
+            <tr style="background-color: ${bg}; border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 10px 12px; font-weight: 600; font-size: 11px; color: #374151; width: 22%; vertical-align: top;">${cat.title}</td>
+                <td style="padding: 10px 12px; font-size: 11px; color: #111827; width: 43%; vertical-align: top;">
+                    <div style="font-weight: 600;">${item ? item.name : '<span style="color:#9ca3af;font-style:italic;">Not Selected</span>'}</div>
+                </td>
+                <td style="padding: 10px 12px; font-size: 10px; color: #4b5563; width: 20%; vertical-align: top;">${item ? item.specs : '-'}</td>
+                <td style="padding: 10px 12px; font-family: monospace; font-weight: 700; font-size: 11px; color: #111827; text-align: right; width: 15%; vertical-align: top;">
+                    ${item ? formatPrice(item.price) : formatPrice(0)}
+                </td>
+            </tr>
+        `;
+    });
+
+    const htmlContent = `
+        <div style="font-family: Helvetica, Arial, sans-serif; color: #111827; background: #ffffff; padding: 24px; width: 720px; line-height: 1.4;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #111827; padding-bottom: 14px; margin-bottom: 20px;">
+                <div>
+                    <div style="font-family: monospace; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #0a0a0a;">SLEEKRIG</div>
+                    <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">Custom PC Hardware Specification & Cost Estimate</div>
+                </div>
+                <div style="text-align: right; font-size: 10px; color: #4b5563; font-family: monospace;">
+                    <div>Generated: ${dateStr}</div>
+                    <div>Parts Selected: ${selectedCount} / 8</div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px;">
+                <div>
+                    <div style="font-size: 9px; text-transform: uppercase; color: #6b7280; font-family: monospace;">Total System Price</div>
+                    <div style="font-size: 18px; font-weight: 800; font-family: monospace; color: #0a0a0a;">${formatPrice(totalPrice)}</div>
+                </div>
+                <div>
+                    <div style="font-size: 9px; text-transform: uppercase; color: #6b7280; font-family: monospace;">Estimated Wattage</div>
+                    <div style="font-size: 18px; font-weight: 800; font-family: monospace; color: #0a0a0a;">${totalWattage}W</div>
+                </div>
+                <div>
+                    <div style="font-size: 9px; text-transform: uppercase; color: #6b7280; font-family: monospace;">Recommended PSU</div>
+                    <div style="font-size: 18px; font-weight: 800; font-family: monospace; color: #0a0a0a;">${recommendedPSU > 40 ? recommendedPSU + 'W+' : '450W+'}</div>
+                </div>
+                <div>
+                    <div style="font-size: 9px; text-transform: uppercase; color: #6b7280; font-family: monospace;">Compatibility</div>
+                    <div style="font-size: 14px; font-weight: 700; font-family: monospace; color: ${issues.length > 0 ? '#dc2626' : '#16a34a'}; margin-top: 3px;">
+                        ${issues.length > 0 ? issues.length + ' Warning(s)' : 'VERIFIED OK'}
+                    </div>
+                </div>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; margin-bottom: 18px;">
+                <thead>
+                    <tr style="background-color: #111827; color: #ffffff; text-align: left;">
+                        <th style="padding: 10px 12px; font-size: 10px; font-family: monospace; text-transform: uppercase; width: 22%;">Component</th>
+                        <th style="padding: 10px 12px; font-size: 10px; font-family: monospace; text-transform: uppercase; width: 43%;">Selected Model</th>
+                        <th style="padding: 10px 12px; font-size: 10px; font-family: monospace; text-transform: uppercase; width: 20%;">Key Specs</th>
+                        <th style="padding: 10px 12px; font-size: 10px; font-family: monospace; text-transform: uppercase; text-align: right; width: 15%;">Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRowsHTML}
+                </tbody>
+                <tfoot>
+                    <tr style="background-color: #f3f4f6; border-top: 2px solid #111827;">
+                        <td colspan="3" style="padding: 12px; font-family: monospace; font-weight: 700; font-size: 12px; text-align: right; color: #111827;">TOTAL ESTIMATED BUILD COST:</td>
+                        <td style="padding: 12px; font-family: monospace; font-weight: 800; font-size: 14px; text-align: right; color: #0a0a0a;">${formatPrice(totalPrice)}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            ${issues.length > 0 ? `
+                <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 10px 14px; margin-bottom: 16px;">
+                    <div style="font-size: 10px; font-weight: 700; color: #991b1b; font-family: monospace; margin-bottom: 4px;">COMPATIBILITY NOTES:</div>
+                    <ul style="margin: 0; padding-left: 16px; font-size: 10px; color: #b91c1c;">
+                        ${issues.map(i => `<li>${i}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+
+            <div style="text-align: center; font-size: 9px; color: #9ca3af; font-family: monospace; border-top: 1px solid #e5e7eb; padding-top: 10px;">
+                SleekRig Custom PC Architect • Prices & Wattages are estimates for planning purposes.
+            </div>
+        </div>
+    `;
+
+    const opt = {
+        margin: [0.3, 0.3, 0.3, 0.3],
+        filename: `SleekRig-PC-Build-${Date.now()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, scrollY: 0, scrollX: 0 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    try {
+        await html2pdf().set(opt).from(htmlContent, 'string').save();
+        showToast('PDF downloaded successfully!', 'success');
+    } catch (err) {
+        console.error(err);
+        showToast('Failed to generate PDF', 'error');
+    }
+}
+        // Copy Text Summary
+        function copyBuildSummary() {
+            const { totalPrice, totalWattage, issues } = analyzeBuild();
+            let text = `=== SLEEKRIG CUSTOM PC BUILD ===\n`;
+            CATEGORIES.forEach(cat => {
+                const item = state.selected[cat.id];
+                text += `${cat.title}: ${item ? `${item.name} (${formatPrice(item.price)})` : 'Not Selected'}\n`;
+            });
+            text += `--------------------------------\n`;
+            text += `Estimated Wattage: ${totalWattage}W\n`;
+            text += `Total Estimated Cost: ${formatPrice(totalPrice)}\n`;
+            text += `Status: ${issues.length > 0 ? issues.join(' | ') : 'Compatible'}\n`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Build specs copied to clipboard!', 'success');
+            });
+        }
+
+        // Start App
+        init();
+    </script>
+    <!-- Footer Section -->
+    <footer class="w-full border-t border-mono-200 dark:border-mono-800 bg-mono-100/40 dark:bg-mono-900/40 py-8 mt-16 transition-colors duration-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono text-mono-500">
+            
+            <div class="flex items-center gap-2.5">
+                <div class="w-6 h-6 rounded-lg bg-mono-900 text-mono-50 dark:bg-mono-100 dark:text-mono-950 flex items-center justify-center font-bold text-[10px]">
+                    <i class="fa-solid fa-microchip"></i>
+                </div>
+                <span class="font-bold text-mono-900 dark:text-mono-100 uppercase tracking-wider">SLEEK<span class="text-mono-400 font-normal">RIG</span> ARCHITECT</span>
+                <span class="hidden sm:inline">© 2026</span>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-4 text-center">
+                <span>Enterprise Hardware Catalog (100+ items/cat)</span>
+                <span class="hidden sm:inline text-mono-300 dark:text-mono-700">|</span>
+                <span>Multi-Currency (USD, AED, INR)</span>
+            </div>
+
+            <div class="text-[11px] text-mono-400">
+                <span>Prices & specs are estimates for planning purposes.</span>
+            </div>
+
+        </div>
+    </footer>
+</body>
+</html>
